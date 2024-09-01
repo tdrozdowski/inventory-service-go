@@ -1,0 +1,11 @@
+# a docker-compose file with a db service that contains a postgresql database container and configuration
+services:
+    db:
+        image: postgres
+        restart: always
+        env_file:
+          - database.env
+        ports:
+        - 5432:5432
+        volumes:
+        - ./data:/var/lib/postgresql/data
