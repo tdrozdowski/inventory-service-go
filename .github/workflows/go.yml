@@ -27,10 +27,12 @@ jobs:
     - name: Test
       run: go test -v ./...
 
-    - name: Update coverage report
-      uses: ncruces/go-coverage-report@v0
+    - name: Codecov
+      run: go test -coverprofile=coverage.txt
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4.5.0
       with:
-        report: true
-        chart: true
-        amend: true
-      continue-on-error: true
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: lcov.info
+        fail_ci_if_error: false
