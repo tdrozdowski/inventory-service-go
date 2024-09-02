@@ -40,13 +40,13 @@ type PersonServiceImpl struct {
 	repo PersonRepository
 }
 
-func NewPersonService(repo PersonRepository) PersonService {
-	return &PersonServiceImpl{
+func NewPersonService(repo PersonRepository) PersonServiceImpl {
+	return PersonServiceImpl{
 		repo: repo,
 	}
 }
 
-func (p *PersonServiceImpl) GetAll(pagination *commons.Pagination) ([]Person, error) {
+func (p PersonServiceImpl) GetAll(pagination *commons.Pagination) ([]Person, error) {
 	persons, err := p.repo.GetAll(pagination)
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (p *PersonServiceImpl) GetAll(pagination *commons.Pagination) ([]Person, er
 	return result, nil
 }
 
-func (p *PersonServiceImpl) GetById(id uuid.UUID) (Person, error) {
+func (p PersonServiceImpl) GetById(id uuid.UUID) (Person, error) {
 	person, err := p.repo.GetByUuid(id)
 	p2 := Person{}
 	if err != nil {
@@ -71,7 +71,7 @@ func (p *PersonServiceImpl) GetById(id uuid.UUID) (Person, error) {
 	return p2.FromRow(person), nil
 }
 
-func (p *PersonServiceImpl) Create(request CreatePersonRequest) (Person, error) {
+func (p PersonServiceImpl) Create(request CreatePersonRequest) (Person, error) {
 	person, err := p.repo.Create(request)
 	p2 := Person{}
 	if err != nil {
@@ -81,7 +81,7 @@ func (p *PersonServiceImpl) Create(request CreatePersonRequest) (Person, error) 
 	return p2.FromRow(person), nil
 }
 
-func (p *PersonServiceImpl) Update(request UpdatePersonRequest) (Person, error) {
+func (p PersonServiceImpl) Update(request UpdatePersonRequest) (Person, error) {
 	person, err := p.repo.Update(request)
 	p2 := Person{}
 	if err != nil {
@@ -91,6 +91,6 @@ func (p *PersonServiceImpl) Update(request UpdatePersonRequest) (Person, error) 
 	return p2.FromRow(person), nil
 }
 
-func (p *PersonServiceImpl) DeleteByUuid(uuid uuid.UUID) (commons.DeleteResult, error) {
+func (p PersonServiceImpl) DeleteByUuid(uuid uuid.UUID) (commons.DeleteResult, error) {
 	return p.repo.DeleteByUuid(uuid)
 }

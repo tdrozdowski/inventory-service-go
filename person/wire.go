@@ -1,9 +1,14 @@
+//go:build wireinject
+// +build wireinject
+
 package person
 
-import "github.com/jmoiron/sqlx"
-import "github.com/google/wire"
+import (
+	"github.com/google/wire"
+	"inventory-service-go/commons"
+)
 
-func InitializePersonService(db sqlx.DB) PersonServiceImpl {
-	wire.Build(NewPersonService, NewPersonRepository)
+func InitializePersonService() PersonServiceImpl {
+	wire.Build(NewPersonService, NewPersonRepository, commons.GetDB)
 	return PersonServiceImpl{}
 }
