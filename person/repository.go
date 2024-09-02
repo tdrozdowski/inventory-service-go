@@ -9,14 +9,14 @@ import (
 
 // PersonRow struct
 type PersonRow struct {
-	Id           int       `db:"id"`
-	AltId        uuid.UUID `db:"alt_id"`
-	Name         string    `db:"name"`
-	Email        string    `db:"email"`
-	CreatedBy    string    `db:"created_by"`
-	CreatedAt    time.Time `db:"created_at"`
-	LastUpdate   time.Time `db:"last_update"`
-	LastChangeBy string    `db:"last_change_by"`
+	Id            int       `db:"id"`
+	AltId         uuid.UUID `db:"alt_id"`
+	Name          string    `db:"name"`
+	Email         string    `db:"email"`
+	CreatedBy     string    `db:"created_by"`
+	CreatedAt     time.Time `db:"created_at"`
+	LastUpdate    time.Time `db:"last_update"`
+	LastChangedBy string    `db:"last_changed_by"`
 }
 
 type CreatePersonRequest struct {

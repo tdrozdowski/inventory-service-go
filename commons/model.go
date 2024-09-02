@@ -12,3 +12,10 @@ type Pagination struct {
 	LastId   int `json:"last_id"`
 	PageSize int `json:"page_size"`
 }
+
+type AuditInfo struct {
+	CreatedBy     string `json:"created_by"`
+	CreatedAt     string `json:"created_at"`
+	LastUpdate    string `json:"last_update"`
+	LastChangedBy string `json:"last_change_by"`
+}
