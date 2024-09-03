@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"inventory-service-go/context"
 	"inventory-service-go/handlers"
 )
@@ -13,6 +14,8 @@ func main() {
 	e := echo.New()
 	appContext := context.NewApplicationContext()
 	e.GET("/api/v1/persons", handlers.GetAll(appContext))
+	//middelwares
+	e.Use(middleware.CORS())
 	// Start the server
 	err := e.Start(":8080")
 	if err != nil {
