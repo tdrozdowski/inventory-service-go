@@ -6,7 +6,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"sync"
@@ -20,12 +19,7 @@ var (
 )
 
 func getDbUri() string {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
 	dbConnectionString := os.Getenv("DATABASE_URL")
-
 	return dbConnectionString
 }
 
