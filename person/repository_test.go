@@ -38,7 +38,7 @@ func TestPersonRepositoryImpl_GetAll(t *testing.T) {
 			prepare: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "name"}).
 					AddRow(1, "test name")
-				mock.ExpectQuery("SELECT \\* FROM persons WHERE id > \\? LIMIT \\?").
+				mock.ExpectQuery("SELECT \\* FROM persons WHERE id > \\$1 LIMIT \\$2").
 					WithArgs(1, 10).WillReturnRows(rows)
 			},
 			wantErr: false,
@@ -94,7 +94,9 @@ func TestPersonRepositoryImpl_GetAll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock, _ := sqlmock.New()
-			defer db.Close()
+			defer func(db *sql.DB) {
+				_ = db.Close()
+			}(db)
 			tt.prepare(mock)
 			tt.fields.db = sqlx.NewDb(db, "sqlmock")
 			p := &PersonRepositoryImpl{
@@ -134,7 +136,7 @@ func TestPersonRepositoryImpl_GetById(t *testing.T) {
 			prepare: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "name"}).
 					AddRow(1, "test name")
-				mock.ExpectQuery("SELECT \\* FROM persons WHERE id = \\?").
+				mock.ExpectQuery("SELECT \\* FROM persons WHERE id = \\$1").
 					WithArgs(1).WillReturnRows(rows)
 			},
 			wantErr: false,
@@ -148,7 +150,7 @@ func TestPersonRepositoryImpl_GetById(t *testing.T) {
 				id: 1,
 			},
 			prepare: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT \\* FROM persons WHERE id = \\?").
+				mock.ExpectQuery("SELECT \\* FROM persons WHERE id = \\$1").
 					WithArgs(1).WillReturnError(errors.New("test error"))
 			},
 			wantErr: true,
@@ -203,7 +205,7 @@ func TestPersonRepositoryImpl_GetByUuid(t *testing.T) {
 			prepare: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "name"}).
 					AddRow(1, "test name")
-				mock.ExpectQuery("SELECT \\* FROM persons WHERE alt_id = \\?").
+				mock.ExpectQuery("SELECT \\* FROM persons WHERE alt_id = \\$1").
 					WithArgs("2b1b425e-dee2-4227-8d94-f470a0ce0cd0").WillReturnRows(rows)
 			},
 			wantErr: false,
@@ -217,7 +219,7 @@ func TestPersonRepositoryImpl_GetByUuid(t *testing.T) {
 				uuid: testUuid,
 			},
 			prepare: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT \\* FROM persons WHERE alt_id = \\?").
+				mock.ExpectQuery("SELECT \\* FROM persons WHERE alt_id = \\$1").
 					WithArgs("2b1b425e-dee2-4227-8d94-f470a0ce0cd0").WillReturnError(errors.New("test error"))
 			},
 			wantErr: true,
@@ -340,7 +342,7 @@ func TestPersonRepositoryImpl_DeleteByUuid(t *testing.T) {
 				uuid: testUuid,
 			},
 			prepare: func(mock sqlmock.Sqlmock) {
-				mock.ExpectExec("DELETE FROM persons WHERE alt_id = \\?").
+				mock.ExpectExec("DELETE FROM persons WHERE alt_id = \\$1").
 					WithArgs("2b1b425e-dee2-4227-8d94-f470a0ce0cd0").WillReturnResult(sqlmock.NewResult(1, 1))
 			},
 			wantErr: false,
@@ -354,7 +356,7 @@ func TestPersonRepositoryImpl_DeleteByUuid(t *testing.T) {
 				uuid: testUuid,
 			},
 			prepare: func(mock sqlmock.Sqlmock) {
-				mock.ExpectExec("DELETE FROM persons WHERE alt_id = \\?").
+				mock.ExpectExec("DELETE FROM persons WHERE alt_id = \\$1").
 					WithArgs("2b1b425e-dee2-4227-8d94-f470a0ce0cd0").WillReturnResult(sqlmock.NewResult(0, 0))
 			},
 			wantErr: true,
@@ -410,7 +412,7 @@ func TestPersonRepositoryImpl_Update(t *testing.T) {
 			prepare: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "name"}).
 					AddRow(1, "test name")
-				mock.ExpectQuery("UPDATE persons SET name = \\?, email = \\?, last_change_by = \\? WHERE alt_id = \\?").
+				mock.ExpectQuery("UPDATE persons SET name = \\$1, email = \\$2, last_change_by = \\$3 WHERE alt_id = \\$4").
 					WillReturnRows(rows)
 			},
 			wantErr: false,
@@ -429,7 +431,7 @@ func TestPersonRepositoryImpl_Update(t *testing.T) {
 				},
 			},
 			prepare: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("UPDATE persons SET name = \\?, email = \\?, last_change_by = \\? WHERE alt_id = \\?").
+				mock.ExpectQuery("UPDATE persons SET name = \\$1, email = \\$2, last_change_by = \\$3 WHERE alt_id = \\$4").
 					WillReturnError(errors.New("test error"))
 			},
 			wantErr: true,

@@ -1,8 +1,9 @@
-package person
+package handlers
 
 import (
 	"github.com/labstack/echo/v4"
 	"inventory-service-go/commons"
+	"inventory-service-go/context"
 	"net/http"
 	"strconv"
 )
@@ -24,15 +25,14 @@ func paginationFromRequest(c echo.Context) *commons.Pagination {
 	}
 }
 
-func GetAll(c echo.Context) error {
-	pagination := paginationFromRequest(c)
-	personService, ok := c.Get("personService").(PersonService)
-	if !ok {
-		return echo.NewHTTPError(http.StatusInternalServerError, "peronService not found")
+func GetAll(appContext context.ApplicationContext) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		pagination := paginationFromRequest(c)
+		personService := appContext.PersonService()
+		persons, err := personService.GetAll(pagination)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusOK, persons)
 	}
-	persons, err := personService.GetAll(pagination)
-	if err != nil {
-		return err
-	}
-	return c.JSON(http.StatusOK, persons)
 }

@@ -15,8 +15,8 @@ import (
 
 var (
 	// DB is a global variable that holds the connection to the database
-	db   *sqlx.DB
-	once sync.Once
+	sqlxDb *sqlx.DB
+	once   sync.Once
 )
 
 func getDbUri() string {
@@ -39,9 +39,10 @@ func GetDB() *sqlx.DB {
 		db.SetMaxIdleConns(2)
 		db.SetMaxOpenConns(4)
 		db.SetConnMaxLifetime(time.Duration(30) * time.Minute)
+		sqlxDb = db
 	})
 
-	return db
+	return sqlxDb
 }
 
 func pgxCreateDB(uri string) (*sqlx.DB, error) {

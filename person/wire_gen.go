@@ -12,7 +12,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitializePersonService() PersonServiceImpl {
+func InitializePersonService() PersonService {
 	db := commons.GetDB()
 	personRepository := NewPersonRepository(db)
 	personServiceImpl := NewPersonService(personRepository)
