@@ -3,6 +3,7 @@ package person
 import (
 	"errors"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"inventory-service-go/commons"
 	"reflect"
@@ -162,7 +163,7 @@ func TestGetById(t *testing.T) {
 				t.Fatalf("PersonServiceImpl.GetById() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if !reflect.DeepEqual(*got, tt.want) {
 				t.Errorf("PersonServiceImpl.GetById() = %v, want %v", got, tt.want)
 			}
 		})
@@ -211,7 +212,7 @@ func TestCreate(t *testing.T) {
 				t.Fatalf("PersonServiceImpl.Create() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if !reflect.DeepEqual(*got, tt.want) {
 				t.Errorf("PersonServiceImpl.Create() = %v, want %v", got, tt.want)
 			}
 		})
@@ -261,7 +262,7 @@ func TestUpdate(t *testing.T) {
 				t.Fatalf("PersonServiceImpl.Update() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if !reflect.DeepEqual(*got, tt.want) {
 				t.Errorf("PersonServiceImpl.Update() = %v, want %v", got, tt.want)
 			}
 		})
@@ -269,9 +270,6 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestDeleteByUuid(t *testing.T) {
-	controller := gomock.NewController(t)
-	mockRepo := NewMockPersonRepository(controller)
-	personService := NewPersonService(mockRepo)
 	rowFixture := personRowFixture()
 	tests := []struct {
 		name     string
@@ -292,7 +290,10 @@ func TestDeleteByUuid(t *testing.T) {
 			wantErr:  true,
 		},
 	}
+	controller := gomock.NewController(t)
 	for _, tt := range tests {
+		mockRepo := NewMockPersonRepository(controller)
+		personService := NewPersonService(mockRepo)
 		if tt.wantErr {
 			mockRepo.EXPECT().DeleteByUuid(rowFixture.AltId).Return(commons.DeleteResult{}, errors.New("error"))
 		} else {
@@ -304,8 +305,12 @@ func TestDeleteByUuid(t *testing.T) {
 				t.Fatalf("PersonServiceImpl.DeleteByUuid() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("PersonServiceImpl.DeleteByUuid() = %v, want %v", got, tt.want)
+			if got == nil && err != nil && tt.wantErr {
+				assert.True(t, true, "Error is expected")
+			} else {
+				if !reflect.DeepEqual(*got, tt.want) {
+					t.Errorf("PersonServiceImpl.DeleteByUuid() = %v, want %v", got, tt.want)
+				}
 			}
 		})
 	}

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	uuid2 "github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"inventory-service-go/commons"
 	"inventory-service-go/context"
@@ -34,5 +35,21 @@ func GetAll(appContext context.ApplicationContext) func(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 		return c.JSON(http.StatusOK, persons)
+	}
+}
+
+func GetById(appContext context.ApplicationContext) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		id := c.Param("id")
+		uuid, err := uuid2.Parse(id)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		personService := appContext.PersonService()
+		person, err := personService.GetById(uuid)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusOK, person)
 	}
 }

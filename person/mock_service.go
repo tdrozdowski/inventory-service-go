@@ -41,10 +41,10 @@ func (m *MockPersonService) EXPECT() *MockPersonServiceMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockPersonService) Create(request CreatePersonRequest) (Person, error) {
+func (m *MockPersonService) Create(request CreatePersonRequest) (*Person, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", request)
-	ret0, _ := ret[0].(Person)
+	ret0, _ := ret[0].(*Person)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -56,10 +56,10 @@ func (mr *MockPersonServiceMockRecorder) Create(request any) *gomock.Call {
 }
 
 // DeleteByUuid mocks base method.
-func (m *MockPersonService) DeleteByUuid(uuid uuid.UUID) (commons.DeleteResult, error) {
+func (m *MockPersonService) DeleteByUuid(uuid uuid.UUID) (*commons.DeleteResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteByUuid", uuid)
-	ret0, _ := ret[0].(commons.DeleteResult)
+	ret0, _ := ret[0].(*commons.DeleteResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -86,10 +86,10 @@ func (mr *MockPersonServiceMockRecorder) GetAll(pagination any) *gomock.Call {
 }
 
 // GetById mocks base method.
-func (m *MockPersonService) GetById(id uuid.UUID) (Person, error) {
+func (m *MockPersonService) GetById(id uuid.UUID) (*Person, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetById", id)
-	ret0, _ := ret[0].(Person)
+	ret0, _ := ret[0].(*Person)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -101,10 +101,10 @@ func (mr *MockPersonServiceMockRecorder) GetById(id any) *gomock.Call {
 }
 
 // Update mocks base method.
-func (m *MockPersonService) Update(request UpdatePersonRequest) (Person, error) {
+func (m *MockPersonService) Update(request UpdatePersonRequest) (*Person, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", request)
-	ret0, _ := ret[0].(Person)
+	ret0, _ := ret[0].(*Person)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

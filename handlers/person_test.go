@@ -4,6 +4,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/mock/gomock"
@@ -69,6 +70,59 @@ func TestGetAll(t *testing.T) {
 			c := echo.New().NewContext(req, rec)
 			handler := GetAll(tt.appContext)
 
+			err := handler(c)
+			if err != nil {
+				t.Errorf("Handler returned error: %v", err)
+			}
+			if tt.expectedCode != rec.Result().StatusCode {
+				t.Errorf("Expected status code %d, got %d", tt.expectedCode, rec.Result().StatusCode)
+			}
+		})
+	}
+}
+
+func TestGetById(t *testing.T) {
+	tests := []struct {
+		name         string
+		uuid         string
+		expectedCode int
+	}{
+		{
+			name:         "Valid Request",
+			uuid:         uuid.NewString(),
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "Invalid Request",
+			uuid:         "1",
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name:         "Internal Error Scenario",
+			uuid:         uuid.NewString(),
+			expectedCode: http.StatusInternalServerError,
+		},
+	}
+	controller := gomock.NewController(t)
+	for _, tt := range tests {
+		mockPersonService := person.NewMockPersonService(controller)
+		applicationContext := context.MockApplicationContext(mockPersonService)
+		expectedPerson := personFixture()
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectedCode == http.StatusInternalServerError {
+				mockPersonService.EXPECT().GetById(gomock.Any()).Return(nil, errors.New("Internal Error"))
+			} else if tt.expectedCode == http.StatusOK {
+				mockPersonService.EXPECT().GetById(gomock.Any()).Return(&expectedPerson, nil)
+			}
+			uri := fmt.Sprintf("/%s", tt.uuid)
+			req := httptest.NewRequest(http.MethodGet, uri, nil)
+			rec := httptest.NewRecorder()
+
+			c := echo.New().NewContext(req, rec)
+			c.SetPath("/:id")
+			c.SetParamNames("id")
+			c.SetParamValues(tt.uuid)
+			handler := GetById(applicationContext)
 			err := handler(c)
 			if err != nil {
 				t.Errorf("Handler returned error: %v", err)

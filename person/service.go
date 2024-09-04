@@ -30,10 +30,10 @@ func (*Person) FromRow(row PersonRow) Person {
 
 type PersonService interface {
 	GetAll(pagination *commons.Pagination) ([]Person, error)
-	GetById(id uuid.UUID) (Person, error)
-	Create(request CreatePersonRequest) (Person, error)
-	Update(request UpdatePersonRequest) (Person, error)
-	DeleteByUuid(uuid uuid.UUID) (commons.DeleteResult, error)
+	GetById(id uuid.UUID) (*Person, error)
+	Create(request CreatePersonRequest) (*Person, error)
+	Update(request UpdatePersonRequest) (*Person, error)
+	DeleteByUuid(uuid uuid.UUID) (*commons.DeleteResult, error)
 }
 
 type PersonServiceImpl struct {
@@ -61,36 +61,40 @@ func (p *PersonServiceImpl) GetAll(pagination *commons.Pagination) ([]Person, er
 	return result, nil
 }
 
-func (p *PersonServiceImpl) GetById(id uuid.UUID) (Person, error) {
-	person, err := p.repo.GetByUuid(id)
+func (p *PersonServiceImpl) GetById(id uuid.UUID) (*Person, error) {
+	row, err := p.repo.GetByUuid(id)
 	p2 := Person{}
 	if err != nil {
-		return p2, err
+		return &p2, err
 	}
-
-	return p2.FromRow(person), nil
+	person := p2.FromRow(row)
+	return &person, nil
 }
 
-func (p *PersonServiceImpl) Create(request CreatePersonRequest) (Person, error) {
-	person, err := p.repo.Create(request)
+func (p *PersonServiceImpl) Create(request CreatePersonRequest) (*Person, error) {
+	row, err := p.repo.Create(request)
 	p2 := Person{}
 	if err != nil {
-		return p2, err
+		return &p2, err
 	}
-
-	return p2.FromRow(person), nil
+	person := p2.FromRow(row)
+	return &person, nil
 }
 
-func (p *PersonServiceImpl) Update(request UpdatePersonRequest) (Person, error) {
-	person, err := p.repo.Update(request)
+func (p *PersonServiceImpl) Update(request UpdatePersonRequest) (*Person, error) {
+	row, err := p.repo.Update(request)
 	p2 := Person{}
 	if err != nil {
-		return p2, err
+		return &p2, err
 	}
-
-	return p2.FromRow(person), nil
+	person := p2.FromRow(row)
+	return &person, nil
 }
 
-func (p *PersonServiceImpl) DeleteByUuid(uuid uuid.UUID) (commons.DeleteResult, error) {
-	return p.repo.DeleteByUuid(uuid)
+func (p *PersonServiceImpl) DeleteByUuid(uuid uuid.UUID) (*commons.DeleteResult, error) {
+	deleteResults, err := p.repo.DeleteByUuid(uuid)
+	if err != nil {
+		return nil, err
+	}
+	return &deleteResults, nil
 }
