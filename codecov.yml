@@ -1,0 +1,6 @@
+# sample regex patterns
+ignore:
+  - "main.go"
+  - "**/mock_*"
+  - "**/wire.go"
+  - "**/wire-gen.go"# glob accepted
