@@ -222,26 +222,78 @@ func TestUpdate(t *testing.T) {
 			} else if tt.expectedCode == http.StatusOK {
 				mockPersonService.EXPECT().Update(gomock.Any()).Return(&expectedPerson, nil)
 			}
+			requestBody, err := json.Marshal(tt.updateRequest)
+			assert.NoError(t, err)
+			uri := fmt.Sprintf("/%s", tt.updateRequest.Id)
+			req := httptest.NewRequest(http.MethodPut, uri, io.NopCloser(bytes.NewReader(requestBody)))
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			rec := httptest.NewRecorder()
+			c := echo.New().NewContext(req, rec)
+			c.SetPath("/:id")
+			c.SetParamNames("id")
+			c.SetParamValues(tt.updateRequest.Id.String())
+			handler := UpdatePerson(applicationContext)
+			err = handler(c)
+			if err != nil {
+				t.Errorf("Handler returned error: %v", err)
+			}
+
+			if tt.expectedCode != rec.Result().StatusCode {
+				t.Errorf("Expected status code %d, got %d", tt.expectedCode, rec.Result().StatusCode)
+			}
 		})
-		requestBody, err := json.Marshal(tt.updateRequest)
-		assert.NoError(t, err)
-		uri := fmt.Sprintf("/%s", tt.updateRequest.Id)
-		req := httptest.NewRequest(http.MethodPut, uri, io.NopCloser(bytes.NewReader(requestBody)))
-		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-		rec := httptest.NewRecorder()
-		c := echo.New().NewContext(req, rec)
-		c.SetPath("/:id")
-		c.SetParamNames("id")
-		c.SetParamValues(tt.updateRequest.Id.String())
-		handler := UpdatePerson(applicationContext)
-		err = handler(c)
-		if err != nil {
-			t.Errorf("Handler returned error: %v", err)
-		}
+	}
+}
 
-		if tt.expectedCode != rec.Result().StatusCode {
-			t.Errorf("Expected status code %d, got %d", tt.expectedCode, rec.Result().StatusCode)
-		}
-
+func TestDelete(t *testing.T) {
+	tests := []struct {
+		name         string
+		uuid         string
+		expectedCode int
+	}{
+		{
+			name:         "Valid Request",
+			uuid:         uuid.NewString(),
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "Invalid Request",
+			uuid:         "1",
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name:         "Internal Error Scenario",
+			uuid:         uuid.NewString(),
+			expectedCode: http.StatusInternalServerError,
+		},
+	}
+	controller := gomock.NewController(t)
+	for _, tt := range tests {
+		mockPersonService := person.NewMockPersonService(controller)
+		applicationContext := context.MockApplicationContext(mockPersonService)
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectedCode == http.StatusInternalServerError {
+				mockPersonService.EXPECT().DeleteByUuid(gomock.Any()).Return(nil, errors.New("Internal Error"))
+			} else if tt.expectedCode == http.StatusOK {
+				mockPersonService.EXPECT().DeleteByUuid(gomock.Any()).Return(&commons.DeleteResult{}, nil)
+			}
+			uri := fmt.Sprintf("/%s", tt.uuid)
+			req := httptest.NewRequest(http.MethodDelete, uri, nil)
+			rec := httptest.NewRecorder()
+			c := echo.New().NewContext(req, rec)
+			c.SetPath("/:id")
+			c.SetParamNames("id")
+			c.SetParamValues(tt.uuid)
+			handler := DeletePerson(applicationContext)
+			err := handler(c)
+			if err != nil {
+				msg := fmt.Sprintf("Handler returned error: %v", err)
+				assert.Fail(t, msg)
+			}
+			if tt.expectedCode != rec.Result().StatusCode {
+				msg := fmt.Sprintf("Expected status code %d, got %d", tt.expectedCode, rec.Result().StatusCode)
+				assert.FailNow(t, msg)
+			}
+		})
 	}
 }
