@@ -21,8 +21,10 @@ func main() {
 	}
 	e := echo.New()
 	appContext := context.NewApplicationContext()
-	e.POST("/api/v1/authorize", handlers.Authorize(appContext))
-	e.GET("/api/v1/persons", handlers.GetAll(appContext))
+	apiV1 := e.Group("/api/v1")
+	apiV1.POST("/authorize", handlers.Authorize(appContext))
+	handlers.PersonRoutes(apiV1, appContext)
+
 	//middlewares
 	e.Use(middleware.CORS())
 	e.Use(middleware.Logger())

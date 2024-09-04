@@ -5,6 +5,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"inventory-service-go/commons"
 	"inventory-service-go/context"
+	"inventory-service-go/person"
 	"net/http"
 	"strconv"
 )
@@ -24,6 +25,12 @@ func paginationFromRequest(c echo.Context) *commons.Pagination {
 		LastId:   lastId,
 		PageSize: pageSize,
 	}
+}
+
+func PersonRoutes(p *echo.Group, appContext context.ApplicationContext) {
+	p.GET("/persons", GetAll(appContext))
+	p.GET("/persons/:id", GetById(appContext))
+	p.POST("/persons", CreatePerson(appContext))
 }
 
 func GetAll(appContext context.ApplicationContext) func(c echo.Context) error {
@@ -51,5 +58,20 @@ func GetById(appContext context.ApplicationContext) func(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 		return c.JSON(http.StatusOK, person)
+	}
+}
+
+func CreatePerson(appContext context.ApplicationContext) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		var createPersonRequest person.CreatePersonRequest
+		if err := c.Bind(&createPersonRequest); err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		personService := appContext.PersonService()
+		results, err := personService.Create(createPersonRequest)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusCreated, results)
 	}
 }

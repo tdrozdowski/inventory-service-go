@@ -19,3 +19,24 @@ Authorization: Bearer {{access_token}}
 OPTIONS http://localhost:8080/api/v1/persons
 
 ###
+
+POST http://localhost:8080/api/v1/persons
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "name": "Test User",
+  "email": "test.user2@test.com",
+  "created_by": "http_client"
+}
+
+> {%
+   client.global.set("person_id", response.body.id);
+ %}
+
+###
+
+GET http://localhost:8080/api/v1/persons/{{person_id}}
+Authorization: Bearer {{access_token}}
+
+###
