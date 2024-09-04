@@ -28,7 +28,7 @@ func GetDB() *sqlx.DB {
 		uri := getDbUri()
 		db, err := pgxCreateDB(uri)
 		if err != nil {
-			log.Fatalf("Error connecting to the database: %v", err)
+			log.Panicf("Error connecting to the database: %v", err)
 		}
 		db.SetMaxIdleConns(2)
 		db.SetMaxOpenConns(4)
