@@ -20,7 +20,7 @@ func NewApplicationContext() ApplicationContext {
 func MockApplicationContext(mockPersonService person.PersonService) ApplicationContext {
 	return ApplicationContext{
 		personService: mockPersonService,
-		authProvider:  auth.NewJwtAuthProvider("secret"),
+		authProvider:  auth.NewJwtAuthProvider("dummy_secret"),
 	}
 }
 
