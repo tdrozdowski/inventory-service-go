@@ -31,6 +31,7 @@ func PersonRoutes(p *echo.Group, appContext context.ApplicationContext) {
 	p.GET("/persons", GetAll(appContext))
 	p.GET("/persons/:id", GetById(appContext))
 	p.POST("/persons", CreatePerson(appContext))
+	p.PUT("/persons/:id", UpdatePerson(appContext))
 }
 
 func GetAll(appContext context.ApplicationContext) func(c echo.Context) error {
@@ -73,5 +74,20 @@ func CreatePerson(appContext context.ApplicationContext) func(c echo.Context) er
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 		return c.JSON(http.StatusCreated, results)
+	}
+}
+
+func UpdatePerson(appContext context.ApplicationContext) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		var updatePersonRequest person.UpdatePersonRequest
+		if err := c.Bind(&updatePersonRequest); err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		personService := appContext.PersonService()
+		results, err := personService.Update(updatePersonRequest)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusOK, results)
 	}
 }

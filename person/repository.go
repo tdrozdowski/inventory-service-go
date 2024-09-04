@@ -26,10 +26,10 @@ type CreatePersonRequest struct {
 }
 
 type UpdatePersonRequest struct {
-	Id           uuid.UUID `json:"id"`
-	Name         string    `json:"name"`
-	Email        string    `json:"email"`
-	LastChangeBy string    `json:"last_change_by"`
+	Id            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	Email         string    `json:"email"`
+	LastChangedBy string    `json:"last_changed_by"`
 }
 
 // PersonRepository Interface for PersonRepository
@@ -102,7 +102,7 @@ func (p *PersonRepositoryImpl) Create(request CreatePersonRequest) (PersonRow, e
 func (p *PersonRepositoryImpl) Update(request UpdatePersonRequest) (PersonRow, error) {
 	// uses sqlx to update a row in the persons table
 	var person PersonRow
-	err := p.db.Get(&person, "UPDATE persons SET name = $1, email = $2, last_change_by = $3 WHERE alt_id = $4 RETURNING *", request.Name, request.Email, request.LastChangeBy, request.Id)
+	err := p.db.Get(&person, "UPDATE persons SET name = $1, email = $2, last_changed_by = $3, last_update = $4 WHERE alt_id = $5 RETURNING *", request.Name, request.Email, request.LastChangedBy, time.Now(), request.Id)
 	if err != nil {
 		return PersonRow{}, err
 	}

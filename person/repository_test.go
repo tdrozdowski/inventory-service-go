@@ -403,16 +403,16 @@ func TestPersonRepositoryImpl_Update(t *testing.T) {
 			},
 			args: args{
 				request: UpdatePersonRequest{
-					Id:           testUuid,
-					Name:         "test name",
-					Email:        "test email",
-					LastChangeBy: "test user",
+					Id:            testUuid,
+					Name:          "test name",
+					Email:         "test email",
+					LastChangedBy: "test user",
 				},
 			},
 			prepare: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "name"}).
 					AddRow(1, "test name")
-				mock.ExpectQuery("UPDATE persons SET name = \\$1, email = \\$2, last_change_by = \\$3 WHERE alt_id = \\$4").
+				mock.ExpectQuery("UPDATE persons SET name = \\$1, email = \\$2, last_changed_by = \\$3, last_update = \\$4 WHERE alt_id = \\$5").
 					WillReturnRows(rows)
 			},
 			wantErr: false,
@@ -424,14 +424,14 @@ func TestPersonRepositoryImpl_Update(t *testing.T) {
 			},
 			args: args{
 				request: UpdatePersonRequest{
-					Id:           testUuid,
-					Name:         "test name",
-					Email:        "test email",
-					LastChangeBy: "test user",
+					Id:            testUuid,
+					Name:          "test name",
+					Email:         "test email",
+					LastChangedBy: "test user",
 				},
 			},
 			prepare: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("UPDATE persons SET name = \\$1, email = \\$2, last_change_by = \\$3 WHERE alt_id = \\$4").
+				mock.ExpectQuery("UPDATE persons SET name = \\$1, email = \\$2, last_changed_by = \\$3 last_update = \\$4 WHERE alt_id = \\$5").
 					WillReturnError(errors.New("test error"))
 			},
 			wantErr: true,

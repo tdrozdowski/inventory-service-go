@@ -188,3 +188,60 @@ func TestCreate(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdate(t *testing.T) {
+	tests := []struct {
+		name          string
+		updateRequest person.UpdatePersonRequest
+		expectedCode  int
+	}{
+		{
+			name: "Valid Request",
+			updateRequest: person.UpdatePersonRequest{
+				Id:            uuid.UUID{},
+				Name:          "Test User",
+				Email:         "test.user@test.com",
+				LastChangedBy: "unit_test",
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:          "Internal Error Scenario",
+			updateRequest: person.UpdatePersonRequest{},
+			expectedCode:  http.StatusInternalServerError,
+		},
+	}
+	controller := gomock.NewController(t)
+	for _, tt := range tests {
+		mockPersonService := person.NewMockPersonService(controller)
+		applicationContext := context.MockApplicationContext(mockPersonService)
+		expectedPerson := personFixture()
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectedCode == http.StatusInternalServerError {
+				mockPersonService.EXPECT().Update(gomock.Any()).Return(nil, errors.New("Internal Error"))
+			} else if tt.expectedCode == http.StatusOK {
+				mockPersonService.EXPECT().Update(gomock.Any()).Return(&expectedPerson, nil)
+			}
+		})
+		requestBody, err := json.Marshal(tt.updateRequest)
+		assert.NoError(t, err)
+		uri := fmt.Sprintf("/%s", tt.updateRequest.Id)
+		req := httptest.NewRequest(http.MethodPut, uri, io.NopCloser(bytes.NewReader(requestBody)))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := echo.New().NewContext(req, rec)
+		c.SetPath("/:id")
+		c.SetParamNames("id")
+		c.SetParamValues(tt.updateRequest.Id.String())
+		handler := UpdatePerson(applicationContext)
+		err = handler(c)
+		if err != nil {
+			t.Errorf("Handler returned error: %v", err)
+		}
+
+		if tt.expectedCode != rec.Result().StatusCode {
+			t.Errorf("Expected status code %d, got %d", tt.expectedCode, rec.Result().StatusCode)
+		}
+
+	}
+}

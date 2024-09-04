@@ -226,10 +226,10 @@ func TestUpdate(t *testing.T) {
 	rowFixture := personRowFixture()
 	expectedPerson := personFixture(rowFixture)
 	updateRequest := UpdatePersonRequest{
-		Id:           rowFixture.AltId,
-		Name:         "John Doe",
-		Email:        "john.doe@test.com",
-		LastChangeBy: "unit_test",
+		Id:            rowFixture.AltId,
+		Name:          "John Doe",
+		Email:         "john.doe@test.com",
+		LastChangedBy: "unit_test",
 	}
 	tests := []struct {
 		name     string
