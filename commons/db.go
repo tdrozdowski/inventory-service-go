@@ -24,18 +24,19 @@ func getDbUri() string {
 }
 
 func GetDB() *sqlx.DB {
-	once.Do(func() {
-		uri := getDbUri()
-		db, err := pgxCreateDB(uri)
-		if err != nil {
-			log.Panicf("Error connecting to the database: %v", err)
-		}
-		db.SetMaxIdleConns(2)
-		db.SetMaxOpenConns(4)
-		db.SetConnMaxLifetime(time.Duration(30) * time.Minute)
-		sqlxDb = db
-	})
-
+	if sqlxDb == nil {
+		once.Do(func() {
+			uri := getDbUri()
+			db, err := pgxCreateDB(uri)
+			if err != nil {
+				log.Panicf("Error connecting to the database: %v", err)
+			}
+			db.SetMaxIdleConns(2)
+			db.SetMaxOpenConns(4)
+			db.SetConnMaxLifetime(time.Duration(30) * time.Minute)
+			sqlxDb = db
+		})
+	}
 	return sqlxDb
 }
 
