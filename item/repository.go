@@ -34,12 +34,14 @@ type UpdateItemRequest struct {
 }
 
 const GET_BY_ID_QUERY = "SELECT * FROM items WHERE alt_id = $1"
+const GET_ALL_QUERY = "SELECT * FROM items"
+const GET_ALL_QUERY_WITH_PAGINATION = "SELECT * FROM items WHERE id > $1 OFFSET $2"
 
 type ItemRepository interface {
 	CreateItem(request CreateItemRequest) (ItemRow, error)
 	UpdateItem(request UpdateItemRequest) (ItemRow, error)
 	GetItem(id uuid.UUID) (ItemRow, error)
-	GetItems() ([]ItemRow, error)
+	GetItems(pagination *commons.Pagination) ([]ItemRow, error)
 	DeleteItem(id uuid.UUID) (commons.DeleteResult, error)
 }
 
@@ -69,4 +71,15 @@ func (r *ItemRepositoryImpl) GetItem(id uuid.UUID) (ItemRow, error) {
 	var item ItemRow
 	err := r.db.Get(&item, GET_BY_ID_QUERY, id)
 	return item, err
+}
+
+func (r *ItemRepositoryImpl) GetItems(pagination *commons.Pagination) ([]ItemRow, error) {
+	var items []ItemRow
+	if pagination == nil {
+		err := r.db.Select(&items, GET_ALL_QUERY)
+		return items, err
+	} else {
+		err := r.db.Select(&items, GET_ALL_QUERY_WITH_PAGINATION, pagination.LastId, pagination.PageSize)
+		return items, err
+	}
 }

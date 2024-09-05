@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
+	"inventory-service-go/commons"
 	"testing"
 	"time"
 )
@@ -140,4 +141,108 @@ func TestItemRepository_GetItem(t *testing.T) {
 	assert.Equal(t, itemtest.Description, resultItem.Description)
 	assert.Equal(t, itemtest.UnitPrice, resultItem.UnitPrice)
 	assert.Equal(t, itemtest.CreatedBy, resultItem.CreatedBy)
+}
+
+func TestItemRepositoryImpl_GetItems(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+
+	itemtest1 := ItemRow{
+		AltId:       uuid.New(),
+		Name:        "TestItem1",
+		Description: "This is a test item 1",
+		UnitPrice:   10.0,
+		CreatedBy:   "testUser",
+	}
+
+	itemtest2 := ItemRow{
+		AltId:       uuid.New(),
+		Name:        "TestItem2",
+		Description: "This is a test item 2",
+		UnitPrice:   15.0,
+		CreatedBy:   "testUser",
+	}
+
+	rows := sqlmock.NewRows([]string{"alt_id", "name", "description", "unit_price", "created_by", "created_at", "last_changed_by", "last_update"}).
+		AddRow(itemtest1.AltId, itemtest1.Name, itemtest1.Description, itemtest1.UnitPrice, itemtest1.CreatedBy, time.Now(), itemtest1.CreatedBy, time.Now()).
+		AddRow(itemtest2.AltId, itemtest2.Name, itemtest2.Description, itemtest2.UnitPrice, itemtest2.CreatedBy, time.Now(), itemtest2.CreatedBy, time.Now())
+
+	mock.ExpectQuery("^SELECT (.+) FROM items$").
+		WillReturnRows(rows)
+
+	itemRepo := NewItemRepository(sqlx.NewDb(db, ""))
+	items, err := itemRepo.GetItems(nil)
+	if err != nil {
+		t.Errorf("error was not expected when getting items: %s", err)
+	} else {
+		if err = mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unfulfilled expectations: %s", err)
+		}
+	}
+
+	assert.Equal(t, 2, len(items))
+	assert.Equal(t, itemtest1.AltId, items[0].AltId)
+	assert.Equal(t, itemtest1.Name, items[0].Name)
+	assert.Equal(t, itemtest1.Description, items[0].Description)
+	assert.Equal(t, itemtest1.UnitPrice, items[0].UnitPrice)
+	assert.Equal(t, itemtest1.CreatedBy, items[0].CreatedBy)
+
+	assert.Equal(t, itemtest2.AltId, items[1].AltId)
+	assert.Equal(t, itemtest2.Name, items[1].Name)
+	assert.Equal(t, itemtest2.Description, items[1].Description)
+	assert.Equal(t, itemtest2.UnitPrice, items[1].UnitPrice)
+	assert.Equal(t, itemtest2.CreatedBy, items[1].CreatedBy)
+}
+
+func TestItemRepositoryImpl_GetAllWithPagination(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+
+	itemtest1 := ItemRow{
+		AltId:       uuid.New(),
+		Name:        "TestItem1",
+		Description: "This is a test item 1",
+		UnitPrice:   10.0,
+		CreatedBy:   "testUser",
+	}
+
+	itemtest2 := ItemRow{
+		AltId:       uuid.New(),
+		Name:        "TestItem2",
+		Description: "This is a test item 2",
+		UnitPrice:   15.0,
+		CreatedBy:   "testUser",
+	}
+
+	rows := sqlmock.NewRows([]string{"alt_id", "name", "description", "unit_price", "created_by", "created_at", "last_changed_by", "last_update"}).
+		AddRow(itemtest2.AltId, itemtest2.Name, itemtest2.Description, itemtest2.UnitPrice, itemtest2.CreatedBy, time.Now(), itemtest2.CreatedBy, time.Now())
+
+	mock.ExpectQuery("^SELECT (.+) FROM items WHERE id > \\$1 OFFSET \\$2$").
+		WillReturnRows(rows)
+
+	itemRepo := NewItemRepository(sqlx.NewDb(db, ""))
+	pagination := commons.Pagination{
+		LastId:   int(itemtest1.Id),
+		PageSize: 1,
+	}
+	items, err := itemRepo.GetItems(&pagination)
+	if err != nil {
+		t.Errorf("error was not expected when getting items: %s", err)
+	} else {
+		if err = mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unfulfilled expectations: %s", err)
+		}
+	}
+
+	assert.Equal(t, 1, len(items))
+
+	assert.Equal(t, itemtest2.AltId, items[0].AltId)
+	assert.Equal(t, itemtest2.Name, items[0].Name)
+	assert.Equal(t, itemtest2.Description, items[0].Description)
+	assert.Equal(t, itemtest2.UnitPrice, items[0].UnitPrice)
+	assert.Equal(t, itemtest2.CreatedBy, items[0].CreatedBy)
 }
