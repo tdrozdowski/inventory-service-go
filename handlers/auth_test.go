@@ -9,6 +9,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"inventory-service-go/auth"
 	"inventory-service-go/context"
+	"inventory-service-go/item"
 	"inventory-service-go/person"
 	"net/http"
 	"net/http/httptest"
@@ -62,7 +63,8 @@ func TestAuthorize(t *testing.T) {
 
 			// Mock ApplicationContext
 			mockPersonService := person.NewMockPersonService(controller)
-			mockContext := context.MockApplicationContext(mockPersonService)
+			mockItemService := item.NewMockItemService(controller)
+			mockContext := context.MockApplicationContext(mockPersonService, *mockItemService)
 
 			// Test function
 			if assert.NoError(t, Authorize(mockContext)(c)) {

@@ -28,9 +28,10 @@ func NewApplicationContext() ApplicationContext {
 	}
 }
 
-func MockApplicationContext(mockPersonService person.PersonService) ApplicationContext {
+func MockApplicationContext(mockPersonService person.PersonService, mockItemService item.MockItemService) ApplicationContext {
 	return ApplicationContext{
 		personService: mockPersonService,
+		itemService:   &mockItemService,
 		authProvider:  auth.NewJwtAuthProvider("dummy_secret"),
 	}
 }
@@ -41,4 +42,8 @@ func (a ApplicationContext) PersonService() person.PersonService {
 
 func (a ApplicationContext) AuthProvider() auth.AuthProvider {
 	return a.authProvider
+}
+
+func (a ApplicationContext) ItemService() item.ItemService {
+	return a.itemService
 }

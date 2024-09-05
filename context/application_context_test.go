@@ -3,6 +3,7 @@ package context
 import (
 	"go.uber.org/mock/gomock"
 	"inventory-service-go/auth"
+	"inventory-service-go/item"
 	"inventory-service-go/person"
 	"testing"
 )
@@ -20,7 +21,8 @@ func TestNewApplicationContext(t *testing.T) {
 func TestMockApplicationContext(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockPersonService := person.NewMockPersonService(controller)
-	appCtx := MockApplicationContext(mockPersonService)
+	mockItemService := item.NewMockItemService(controller)
+	appCtx := MockApplicationContext(mockPersonService, *mockItemService)
 	if _, ok := appCtx.AuthProvider().(auth.AuthProvider); !ok {
 		t.Error("AuthProvider in mocked context should be of type *auth.AuthProvider")
 	}
