@@ -4,7 +4,7 @@
 //go:build !wireinject
 // +build !wireinject
 
-package person
+package item
 
 import (
 	"inventory-service-go/commons"
@@ -12,9 +12,9 @@ import (
 
 // Injectors from wire.go:
 
-func InitializePersonService() (PersonService, error) {
+func InitializeItemService() (ItemService, error) {
 	db := commons.GetDB()
-	personRepositoryImpl := NewPersonRepository(db)
-	personServiceImpl := NewPersonService(personRepositoryImpl)
-	return personServiceImpl, nil
+	itemRepositoryImpl := NewItemRepository(db)
+	itemServiceImpl := NewItemService(itemRepositoryImpl)
+	return itemServiceImpl, nil
 }
