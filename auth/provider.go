@@ -2,7 +2,7 @@ package auth
 
 import (
 	"errors"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"os"
 	"time"
 )
@@ -14,7 +14,7 @@ type Credentials struct {
 
 type Claims struct {
 	Username string `json:"username"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 type AuthProvider interface {
@@ -58,10 +58,10 @@ func (p *JwtAuthProvider) generateToken(username string) (string, error) {
 	twelveHoursFromNow := now.Add(time.Hour * 12)
 	claims := &Claims{
 		Username: username,
-		StandardClaims: jwt.StandardClaims{
-			IssuedAt: now.Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt: jwt.NewNumericDate(now),
 			// In JWT, the expiry time is expressed as unix milliseconds.
-			ExpiresAt: twelveHoursFromNow.Unix(),
+			ExpiresAt: jwt.NewNumericDate(twelveHoursFromNow),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

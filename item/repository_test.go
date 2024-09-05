@@ -45,3 +45,60 @@ func TestItemRepository_CreateItem(t *testing.T) {
 	assert.Equal(t, itemtest.CreatedBy, resultItem.CreatedBy)
 	assert.Equal(t, itemtest.CreatedBy, resultItem.LastChangedBy)
 }
+
+func TestItemRepository_UpdateItem(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+
+	itemtest := ItemRow{
+		AltId:       uuid.New(),
+		Name:        "TestItem",
+		Description: "This is a test item",
+		UnitPrice:   20.0,
+		CreatedBy:   "testUser",
+	}
+
+	itemtestUpd := ItemRow{
+		AltId:         itemtest.AltId,
+		Name:          "UpdatedTestItem",
+		Description:   "This is an updated test item",
+		UnitPrice:     22.0,
+		LastChangedBy: "testUser2",
+	}
+
+	updateQuery := "UPDATE items SET name = \\$1, description = \\$2, unit_price = \\$3, last_changed_by = \\$4 WHERE alt_id = \\$5 returning *"
+
+	mock.ExpectQuery(updateQuery).
+		WithArgs(itemtestUpd.Name, itemtestUpd.Description, itemtestUpd.UnitPrice, itemtestUpd.LastChangedBy, itemtest.AltId).
+		WillReturnRows(
+			sqlmock.NewRows([]string{"id", "alt_id", "name", "description", "unit_price", "created_by", "created_at", "last_changed_by", "last_update"}).
+				AddRow(1, itemtest.AltId, itemtestUpd.Name, itemtestUpd.Description, itemtestUpd.UnitPrice, itemtest.CreatedBy, time.Now(), itemtestUpd.LastChangedBy, time.Now()))
+
+	itemRepo := NewItemRepository(sqlx.NewDb(db, ""))
+
+	request := UpdateItemRequest{
+		Id:            itemtest.AltId,
+		Name:          itemtestUpd.Name,
+		Description:   itemtestUpd.Description,
+		UnitPrice:     itemtestUpd.UnitPrice,
+		LastChangedBy: itemtestUpd.LastChangedBy,
+	}
+
+	row, err := itemRepo.UpdateItem(request)
+	if err != nil {
+		t.Errorf("error was not expected when updating item: %s", err)
+	} else {
+		if err = mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unfulfilled expectations: %s", err)
+		}
+	}
+	assert.Equal(t, itemtestUpd.Name, row.Name)
+	assert.Equal(t, itemtestUpd.Description, row.Description)
+	assert.Equal(t, itemtestUpd.UnitPrice, row.UnitPrice)
+	assert.Equal(t, itemtestUpd.LastChangedBy, row.LastChangedBy)
+	assert.Equal(t, itemtest.AltId, row.AltId)
+	assert.Equal(t, itemtest.CreatedBy, row.CreatedBy)
+	assert.Equal(t, itemtestUpd.LastChangedBy, row.LastChangedBy)
+}

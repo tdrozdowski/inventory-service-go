@@ -53,6 +53,12 @@ func NewItemRepository(db *sqlx.DB) *ItemRepositoryImpl {
 
 func (r *ItemRepositoryImpl) CreateItem(request CreateItemRequest) (ItemRow, error) {
 	var item ItemRow
-	err := r.db.Get(&item, `INSERT INTO items (name, description, unit_price, created_by, last_changed_by) VALUES ($1, $2, $3, $4, $4)`, request.Name, request.Description, request.UnitPrice, request.CreatedBy)
+	err := r.db.Get(&item, `INSERT INTO items (name, description, unit_price, created_by, last_changed_by) VALUES ($1, $2, $3, $4, $4) returning *`, request.Name, request.Description, request.UnitPrice, request.CreatedBy)
+	return item, err
+}
+
+func (r *ItemRepositoryImpl) UpdateItem(request UpdateItemRequest) (ItemRow, error) {
+	var item ItemRow
+	err := r.db.Get(&item, `UPDATE items SET name = $1, description = $2, unit_price = $3, last_changed_by = $4 WHERE alt_id = $5 returning *`, request.Name, request.Description, request.UnitPrice, request.LastChangedBy, request.Id)
 	return item, err
 }
