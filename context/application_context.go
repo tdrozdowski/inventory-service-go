@@ -2,17 +2,28 @@ package context
 
 import (
 	"inventory-service-go/auth"
+	"inventory-service-go/item"
 	"inventory-service-go/person"
 )
 
 type ApplicationContext struct {
 	personService person.PersonService
+	itemService   item.ItemService
 	authProvider  auth.AuthProvider
 }
 
 func NewApplicationContext() ApplicationContext {
+	p, err := person.InitializePersonService()
+	if err != nil {
+		panic(err)
+	}
+	i, err := item.InitializeItemService()
+	if err != nil {
+		panic(err)
+	}
 	return ApplicationContext{
-		personService: person.InitializePersonService(),
+		personService: p,
+		itemService:   i,
 		authProvider:  auth.NewAuthProvider(),
 	}
 }
