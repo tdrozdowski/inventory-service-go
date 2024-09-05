@@ -1,6 +1,7 @@
 package item
 
 import (
+	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -245,4 +246,40 @@ func TestItemRepositoryImpl_GetAllWithPagination(t *testing.T) {
 	assert.Equal(t, itemtest2.Description, items[0].Description)
 	assert.Equal(t, itemtest2.UnitPrice, items[0].UnitPrice)
 	assert.Equal(t, itemtest2.CreatedBy, items[0].CreatedBy)
+}
+
+func TestItemRepositoryImpl_DeleteItem(t *testing.T) {
+	var testCases = []struct {
+		testName string
+		id       uuid.UUID
+		wantErr  bool
+	}{
+		{"Test Delete Item - Success", uuid.New(), false},
+		{"Test Delete Item - Fail", uuid.Nil, true},
+	}
+	for _, tt := range testCases {
+		t.Run(tt.testName, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			if err != nil {
+				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+			}
+
+			itemRepo := NewItemRepository(sqlx.NewDb(db, ""))
+
+			if !tt.wantErr {
+				mock.ExpectQuery("^DELETE FROM items WHERE alt_id = \\$1").
+					WithArgs(tt.id).
+					WillReturnRows(sqlmock.NewRows([]string{"id", "deleted"}).AddRow(tt.id, true))
+			} else {
+				mock.ExpectQuery("^DELETE FROM items WHERE alt_id = \\$1").
+					WithArgs(tt.id).
+					WillReturnError(sql.ErrNoRows)
+			}
+
+			_, err = itemRepo.DeleteItem(tt.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DeleteItem() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

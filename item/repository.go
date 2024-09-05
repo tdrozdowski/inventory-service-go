@@ -33,9 +33,12 @@ type UpdateItemRequest struct {
 	LastChangedBy string    `json:"last_changed_by"`
 }
 
-const GET_BY_ID_QUERY = "SELECT * FROM items WHERE alt_id = $1"
-const GET_ALL_QUERY = "SELECT * FROM items"
-const GET_ALL_QUERY_WITH_PAGINATION = "SELECT * FROM items WHERE id > $1 OFFSET $2"
+const (
+	GET_BY_ID_QUERY               = "SELECT * FROM items WHERE alt_id = $1"
+	GET_ALL_QUERY                 = "SELECT * FROM items"
+	GET_ALL_QUERY_WITH_PAGINATION = "SELECT * FROM items WHERE id > $1 OFFSET $2"
+	DELETE_BY_ID_QUERY            = "DELETE FROM items WHERE alt_id = $1"
+)
 
 type ItemRepository interface {
 	CreateItem(request CreateItemRequest) (ItemRow, error)
@@ -82,4 +85,10 @@ func (r *ItemRepositoryImpl) GetItems(pagination *commons.Pagination) ([]ItemRow
 		err := r.db.Select(&items, GET_ALL_QUERY_WITH_PAGINATION, pagination.LastId, pagination.PageSize)
 		return items, err
 	}
+}
+
+func (r *ItemRepositoryImpl) DeleteItem(id uuid.UUID) (commons.DeleteResult, error) {
+	var result commons.DeleteResult
+	err := r.db.Get(&result, DELETE_BY_ID_QUERY, id)
+	return result, err
 }
