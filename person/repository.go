@@ -53,7 +53,7 @@ func NewPersonRepository(db *sqlx.DB) *PersonRepositoryImpl {
 }
 
 func (p *PersonRepositoryImpl) GetAll(pagination *commons.Pagination) ([]PersonRow, error) {
-	// uses sqlx to query the perons table and retreive all rows
+	// uses sqlx to query the persons table and retrive all rows
 	var persons []PersonRow
 	if pagination != nil {
 		err := p.db.Select(&persons, "SELECT * FROM persons WHERE id > $1 LIMIT $2", pagination.LastId, pagination.PageSize)
