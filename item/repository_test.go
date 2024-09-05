@@ -102,3 +102,42 @@ func TestItemRepository_UpdateItem(t *testing.T) {
 	assert.Equal(t, itemtest.CreatedBy, row.CreatedBy)
 	assert.Equal(t, itemtestUpd.LastChangedBy, row.LastChangedBy)
 }
+
+func TestItemRepository_GetItem(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+
+	itemtest := ItemRow{
+		AltId:       uuid.New(),
+		Name:        "GetTestItem",
+		Description: "This is a test item for get",
+		UnitPrice:   30.0,
+		CreatedBy:   "getTestUser",
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "alt_id", "name", "description", "unit_price", "created_by", "created_at", "last_changed_by", "last_update"}).
+		AddRow(1, itemtest.AltId, itemtest.Name, itemtest.Description, itemtest.UnitPrice, itemtest.CreatedBy, time.Now(), itemtest.CreatedBy, time.Now())
+
+	mock.ExpectQuery("^SELECT (.+) FROM items WHERE alt_id = \\$1$").
+		WithArgs(itemtest.AltId).
+		WillReturnRows(rows)
+
+	itemRepo := NewItemRepository(sqlx.NewDb(db, ""))
+
+	resultItem, err := itemRepo.GetItem(itemtest.AltId)
+	if err != nil {
+		t.Errorf("error was not expected when getting item: %s", err)
+	} else {
+		if err = mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unfulfilled expectations: %s", err)
+		}
+	}
+
+	assert.Equal(t, itemtest.Name, resultItem.Name)
+	assert.Equal(t, itemtest.AltId, resultItem.AltId)
+	assert.Equal(t, itemtest.Description, resultItem.Description)
+	assert.Equal(t, itemtest.UnitPrice, resultItem.UnitPrice)
+	assert.Equal(t, itemtest.CreatedBy, resultItem.CreatedBy)
+}

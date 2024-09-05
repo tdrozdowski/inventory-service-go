@@ -33,6 +33,8 @@ type UpdateItemRequest struct {
 	LastChangedBy string    `json:"last_changed_by"`
 }
 
+const GET_BY_ID_QUERY = "SELECT * FROM items WHERE alt_id = $1"
+
 type ItemRepository interface {
 	CreateItem(request CreateItemRequest) (ItemRow, error)
 	UpdateItem(request UpdateItemRequest) (ItemRow, error)
@@ -60,5 +62,11 @@ func (r *ItemRepositoryImpl) CreateItem(request CreateItemRequest) (ItemRow, err
 func (r *ItemRepositoryImpl) UpdateItem(request UpdateItemRequest) (ItemRow, error) {
 	var item ItemRow
 	err := r.db.Get(&item, `UPDATE items SET name = $1, description = $2, unit_price = $3, last_changed_by = $4 WHERE alt_id = $5 returning *`, request.Name, request.Description, request.UnitPrice, request.LastChangedBy, request.Id)
+	return item, err
+}
+
+func (r *ItemRepositoryImpl) GetItem(id uuid.UUID) (ItemRow, error) {
+	var item ItemRow
+	err := r.db.Get(&item, GET_BY_ID_QUERY, id)
 	return item, err
 }
