@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	"inventory-service-go/commons"
 	"testing"
 )
 
@@ -96,6 +97,59 @@ func TestUpdateItem(t *testing.T) {
 			} else {
 				mockValue := itemFromRow(tt.mockReturnValue)
 				assert.Equal(t, &mockValue, newItem)
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
+
+func TestDeleteItem(t *testing.T) {
+	controller := gomock.NewController(t)
+	defer controller.Finish()
+	mockRepo := NewMockItemRepository(controller)
+	service := NewItemService(mockRepo)
+
+	tests := []struct {
+		name            string
+		givenId         uuid.UUID
+		mockReturnValue commons.DeleteResult
+		mockError       error
+		expectedError   error
+	}{
+		{
+			name:            "ValidRequest",
+			givenId:         uuid.New(),
+			mockReturnValue: commons.DeleteResult{Deleted: true},
+			mockError:       nil,
+			expectedError:   nil,
+		},
+		{
+			name:            "RepoError",
+			givenId:         uuid.New(),
+			mockReturnValue: commons.DeleteResult{},
+			mockError:       errors.New("DB Error"),
+			expectedError:   errors.New("DB Error"),
+		},
+		{
+			name:            "NonExistingId",
+			givenId:         uuid.New(),
+			mockReturnValue: commons.DeleteResult{Deleted: false},
+			mockError:       nil,
+			expectedError:   nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo.EXPECT().DeleteItem(tt.givenId).Return(tt.mockReturnValue, tt.mockError)
+
+			deleteResult, err := service.DeleteItem(tt.givenId)
+
+			if tt.mockError != nil {
+				assert.Nil(t, deleteResult)
+				assert.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				assert.Equal(t, tt.mockReturnValue.Deleted, deleteResult.Deleted)
 				assert.Nil(t, err)
 			}
 		})

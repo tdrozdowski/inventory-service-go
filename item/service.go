@@ -33,7 +33,7 @@ func itemFromRow(row ItemRow) Item {
 type ItemService interface {
 	CreateItem(request CreateItemRequest) (*Item, error)
 	UpdateItem(request UpdateItemRequest) (*Item, error)
-	DeleteItem(id uuid.UUID) (*Item, error)
+	DeleteItem(id uuid.UUID) (*commons.DeleteResult, error)
 	GetItem(id uuid.UUID) (*Item, error)
 	GetItems(pagination commons.Pagination) ([]Item, error)
 }
@@ -64,4 +64,12 @@ func (s *ItemServiceImpl) UpdateItem(request UpdateItemRequest) (*Item, error) {
 	}
 	i := itemFromRow(row)
 	return &i, nil
+}
+
+func (s *ItemServiceImpl) DeleteItem(id uuid.UUID) (*commons.DeleteResult, error) {
+	r, err := s.repo.DeleteItem(id)
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
 }
