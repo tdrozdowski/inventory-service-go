@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestCreateItem(t *testing.T) {
+func TestItemService_CreateItem(t *testing.T) {
 	controller := gomock.NewController(t)
 	defer controller.Finish()
 	mockRepo := NewMockItemRepository(controller)
@@ -56,7 +56,7 @@ func TestCreateItem(t *testing.T) {
 	}
 }
 
-func TestUpdateItem(t *testing.T) {
+func TestItemService_UpdateItem(t *testing.T) {
 	controller := gomock.NewController(t)
 	defer controller.Finish()
 	mockRepo := NewMockItemRepository(controller)
@@ -103,7 +103,7 @@ func TestUpdateItem(t *testing.T) {
 	}
 }
 
-func TestDeleteItem(t *testing.T) {
+func TestItemService_DeleteItem(t *testing.T) {
 	controller := gomock.NewController(t)
 	defer controller.Finish()
 	mockRepo := NewMockItemRepository(controller)
@@ -150,6 +150,53 @@ func TestDeleteItem(t *testing.T) {
 				assert.EqualError(t, err, tt.expectedError.Error())
 			} else {
 				assert.Equal(t, tt.mockReturnValue.Deleted, deleteResult.Deleted)
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
+
+func TestItemService_GetItem(t *testing.T) {
+	controller := gomock.NewController(t)
+	defer controller.Finish()
+	mockRepo := NewMockItemRepository(controller)
+	service := NewItemService(mockRepo)
+
+	tests := []struct {
+		name            string
+		givenId         uuid.UUID
+		mockReturnValue ItemRow
+		mockError       error
+		expectedError   error
+	}{
+		{
+			name:            "ValidRequest",
+			givenId:         uuid.New(),
+			mockReturnValue: ItemRow{Id: 1, AltId: uuid.New(), Name: "item1", Description: "description1", UnitPrice: 100.00, CreatedBy: "testuser"},
+			mockError:       nil,
+			expectedError:   nil,
+		},
+		{
+			name:            "RepoError",
+			givenId:         uuid.New(),
+			mockReturnValue: ItemRow{},
+			mockError:       errors.New("DB Error"),
+			expectedError:   errors.New("DB Error"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo.EXPECT().GetItem(tt.givenId).Return(tt.mockReturnValue, tt.mockError)
+
+			newItem, err := service.GetItem(tt.givenId)
+
+			if tt.mockError != nil {
+				assert.Nil(t, newItem)
+				assert.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				mockValue := itemFromRow(tt.mockReturnValue)
+				assert.Equal(t, &mockValue, newItem)
 				assert.Nil(t, err)
 			}
 		})

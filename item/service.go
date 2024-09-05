@@ -73,3 +73,12 @@ func (s *ItemServiceImpl) DeleteItem(id uuid.UUID) (*commons.DeleteResult, error
 	}
 	return &r, nil
 }
+
+func (s *ItemServiceImpl) GetItem(id uuid.UUID) (*Item, error) {
+	row, err := s.repo.GetItem(id)
+	if err != nil {
+		return nil, err
+	}
+	i := itemFromRow(row)
+	return &i, nil
+}
