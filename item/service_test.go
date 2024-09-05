@@ -202,3 +202,60 @@ func TestItemService_GetItem(t *testing.T) {
 		})
 	}
 }
+
+func TestItemService_GetItems(t *testing.T) {
+	controller := gomock.NewController(t)
+	defer controller.Finish()
+	mockRepo := NewMockItemRepository(controller)
+	service := NewItemService(mockRepo)
+
+	tests := []struct {
+		name            string
+		givenRequest    *commons.Pagination
+		mockReturnValue []ItemRow
+		mockError       error
+		expectedError   error
+	}{
+		{
+			name:            "ValidRequest",
+			givenRequest:    &commons.Pagination{LastId: 1, PageSize: 10},
+			mockReturnValue: []ItemRow{{Id: 1, AltId: uuid.New(), Name: "item1", Description: "description1", UnitPrice: 100.00, CreatedBy: "testuser"}},
+			mockError:       nil,
+			expectedError:   nil,
+		},
+		{
+			name:            "RepoError",
+			givenRequest:    &commons.Pagination{LastId: 1, PageSize: 10},
+			mockReturnValue: []ItemRow{},
+			mockError:       errors.New("DB Error"),
+			expectedError:   errors.New("DB Error"),
+		},
+		{
+			name:            "InvalidPagination",
+			givenRequest:    &commons.Pagination{LastId: -1, PageSize: 0},
+			mockReturnValue: []ItemRow{},
+			mockError:       nil,
+			expectedError:   errors.New("Invalid pagination parameters"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo.EXPECT().GetItems(tt.givenRequest).Return(tt.mockReturnValue, tt.mockError)
+
+			items, err := service.GetItems(tt.givenRequest)
+
+			if tt.mockError != nil {
+				assert.Empty(t, items)
+				assert.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				assert.Len(t, items, len(tt.mockReturnValue))
+				for i := range items {
+					mockVal := itemFromRow(tt.mockReturnValue[i])
+					assert.Equal(t, mockVal, items[i])
+				}
+				assert.Nil(t, err)
+			}
+		})
+	}
+}

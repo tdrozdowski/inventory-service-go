@@ -35,7 +35,7 @@ type ItemService interface {
 	UpdateItem(request UpdateItemRequest) (*Item, error)
 	DeleteItem(id uuid.UUID) (*commons.DeleteResult, error)
 	GetItem(id uuid.UUID) (*Item, error)
-	GetItems(pagination commons.Pagination) ([]Item, error)
+	GetItems(pagination *commons.Pagination) ([]Item, error)
 }
 
 type ItemServiceImpl struct {
@@ -81,4 +81,16 @@ func (s *ItemServiceImpl) GetItem(id uuid.UUID) (*Item, error) {
 	}
 	i := itemFromRow(row)
 	return &i, nil
+}
+
+func (s *ItemServiceImpl) GetItems(pagination *commons.Pagination) ([]Item, error) {
+	rows, err := s.repo.GetItems(pagination)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]Item, len(rows))
+	for i, row := range rows {
+		items[i] = itemFromRow(row)
+	}
+	return items, nil
 }
