@@ -56,3 +56,12 @@ func (s *ItemServiceImpl) CreateItem(request CreateItemRequest) (*Item, error) {
 	i := itemFromRow(row)
 	return &i, nil
 }
+
+func (s *ItemServiceImpl) UpdateItem(request UpdateItemRequest) (*Item, error) {
+	row, err := s.repo.UpdateItem(request)
+	if err != nil {
+		return nil, err
+	}
+	i := itemFromRow(row)
+	return &i, nil
+}
