@@ -137,3 +137,87 @@ func TestInvoiceRepositoryImpl_UpdateInvoice(t *testing.T) {
 		})
 	}
 }
+
+func TestInvoiceRepositoryImpl_AddItemsToInvoice(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	invoiceId := uuid.New()
+	itemId1 := uuid.New()
+	itemId2 := uuid.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	testCases := []struct {
+		name    string
+		request AddItemsToInvoiceRequest
+		items   []SimpleInvoiceItem
+		rows    *sqlmock.Rows
+		wantErr bool
+	}{
+		{
+			name: "Successful Items Addition",
+			request: AddItemsToInvoiceRequest{
+				InvoiceId: invoiceId,
+				Items:     []uuid.UUID{itemId1, itemId2},
+			},
+			items: []SimpleInvoiceItem{
+				{
+					InvoiceId: invoiceId,
+					ItemId:    itemId1,
+				},
+				{
+					InvoiceId: invoiceId,
+					ItemId:    itemId2,
+				},
+			},
+			rows: sqlmock.NewRows([]string{"invoice_id", "item_id"}).
+				AddRow(invoiceId, itemId1).
+				AddRow(invoiceId, itemId2),
+			wantErr: false,
+		},
+		{
+			name: "Failed Items Addition",
+			request: AddItemsToInvoiceRequest{
+				InvoiceId: uuid.New(),
+				Items:     []uuid.UUID{uuid.New(), uuid.New()},
+			},
+			items: []SimpleInvoiceItem{
+				{
+					InvoiceId: invoiceId,
+					ItemId:    itemId1,
+				},
+				{
+					InvoiceId: invoiceId,
+					ItemId:    itemId2,
+				},
+			},
+			rows:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.wantErr {
+				mock.ExpectExec("INSERT INTO invoices_items").
+					WithArgs(tc.items).
+					WillReturnError(errors.New("error"))
+			} else {
+				mock.ExpectExec("INSERT INTO invoices_items").
+					WithArgs(tc.items[0].InvoiceId, tc.items[0].ItemId, tc.items[1].InvoiceId, tc.items[1].ItemId).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+			}
+
+			r := NewInvoiceRepository(sqlx.NewDb(db, "mockDb"))
+
+			results, err := r.AddItemsToInvoice(tc.request)
+			if tc.wantErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				assert.NotNil(t, results)
+				assert.Equal(t, results.InvoiceId, tc.request.InvoiceId)
+				assert.Equal(t, results.Items, tc.request.Items)
+				assert.True(t, results.Success)
+			}
+		})
+	}
+}

@@ -57,10 +57,32 @@ type AddItemsToInvoiceRequest struct {
 	Items     []uuid.UUID `json:"items"`
 }
 
+type SimpleInvoiceItem struct {
+	InvoiceId uuid.UUID `db:"invoice_id"`
+	ItemId    uuid.UUID `db:"item_id"`
+}
+
+type AddItemsToInvoiceResponse struct {
+	InvoiceId uuid.UUID   `json:"invoice_id"`
+	Items     []uuid.UUID `json:"items"`
+	Success   bool        `json:"success"`
+}
+
+func (r *AddItemsToInvoiceRequest) ToSimpleInvoiceItems() []SimpleInvoiceItem {
+	var items []SimpleInvoiceItem
+	for _, itemId := range r.Items {
+		items = append(items, SimpleInvoiceItem{
+			InvoiceId: r.InvoiceId,
+			ItemId:    itemId,
+		})
+	}
+	return items
+}
+
 type InvoiceRepository interface {
 	CreateInvoice(request CreateInvoiceRequest) (InvoiceRow, error)
 	UpdateInvoice(request UpdateInvoiceRequest) (InvoiceRow, error)
-	AddItemsToInvoice(request AddItemsToInvoiceRequest) ([]InvoiceItemRow, error)
+	AddItemsToInvoice(request AddItemsToInvoiceRequest) (AddItemsToInvoiceResponse, error)
 	GetInvoice(id int64) (InvoiceRow, error)
 	GetInvoiceItems(id uuid.UUID) ([]InvoiceItemRow, error)
 	GetInvoiceItem(id uuid.UUID) (InvoiceItemRow, error)
@@ -77,8 +99,9 @@ func NewInvoiceRepository(db *sqlx.DB) *InvoiceRepositoryImpl {
 }
 
 const (
-	CreateQuery = `INSERT INTO invoices (user_id, total, paid, created_by) VALUES ($1, $2, $3, $4) RETURNING *`
-	UpdateQuery = `UPDATE invoices SET total = $2, paid = $3, last_changed_by = $4 WHERE alt_id = $1 RETURNING *`
+	CreateQuery            = `INSERT INTO invoices (user_id, total, paid, created_by) VALUES ($1, $2, $3, $4) RETURNING *`
+	UpdateQuery            = `UPDATE invoices SET total = $2, paid = $3, last_changed_by = $4 WHERE alt_id = $1 RETURNING *`
+	AddItemsToInvoiceQuery = `INSERT INTO invoices_items (invoice_id, item_id) VALUES (:invoice_id, :item_id)`
 )
 
 func (r *InvoiceRepositoryImpl) CreateInvoice(request CreateInvoiceRequest) (InvoiceRow, error) {
@@ -91,4 +114,18 @@ func (r *InvoiceRepositoryImpl) UpdateInvoice(request UpdateInvoiceRequest) (Inv
 	var results = InvoiceRow{}
 	err := r.db.Get(&results, UpdateQuery, request.Id, request.Total, request.Paid, request.LastChangedBy)
 	return results, err
+}
+
+func (r *InvoiceRepositoryImpl) AddItemsToInvoice(request AddItemsToInvoiceRequest) (AddItemsToInvoiceResponse, error) {
+	items := request.ToSimpleInvoiceItems()
+	_, err := r.db.NamedExec(AddItemsToInvoiceQuery, items)
+	if err != nil {
+		return AddItemsToInvoiceResponse{}, err
+	} else {
+		return AddItemsToInvoiceResponse{
+			InvoiceId: request.InvoiceId,
+			Items:     request.Items,
+			Success:   true,
+		}, nil
+	}
 }
