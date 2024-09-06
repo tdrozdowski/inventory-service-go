@@ -303,3 +303,60 @@ func TestDelete(t *testing.T) {
 		})
 	}
 }
+
+func TestPaginationFromRequest(t *testing.T) {
+	tests := []struct {
+		name         string
+		request      echo.Context
+		expectedPage *commons.Pagination
+	}{
+		{
+			name: "No pagination parameters",
+			request: echo.New().NewContext(
+				httptest.NewRequest(http.MethodGet, "/", nil),
+				httptest.NewRecorder(),
+			),
+			expectedPage: nil,
+		},
+		{
+			name: "Valid pagination parameters",
+			request: echo.New().NewContext(
+				httptest.NewRequest(http.MethodGet, "/?last_id=5&page_size=15", nil),
+				httptest.NewRecorder(),
+			),
+			expectedPage: &commons.Pagination{
+				LastId:   5,
+				PageSize: 15,
+			},
+		},
+		{
+			name: "Invalid LastId, valid PageSize",
+			request: echo.New().NewContext(
+				httptest.NewRequest(http.MethodGet, "/?last_id=invalid&page_size=15", nil),
+				httptest.NewRecorder(),
+			),
+			expectedPage: &commons.Pagination{
+				LastId:   0,
+				PageSize: 15,
+			},
+		},
+		{
+			name: "Valid LastId, invalid PageSize",
+			request: echo.New().NewContext(
+				httptest.NewRequest(http.MethodGet, "/?last_id=5&page_size=invalid", nil),
+				httptest.NewRecorder(),
+			),
+			expectedPage: &commons.Pagination{
+				LastId:   5,
+				PageSize: 10,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actualPage := paginationFromRequest(tt.request)
+			assert.Equal(t, tt.expectedPage, actualPage)
+		})
+	}
+}
