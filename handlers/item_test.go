@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/mock/gomock"
 	"inventory-service-go/commons"
@@ -35,24 +36,35 @@ func TestHandlers_AllItems(t *testing.T) {
 		},
 	}
 	controller := gomock.NewController(t)
+	mockItemService := item.NewMockItemService(controller)
+	mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
 	for _, tt := range tests {
-		mockItemService := item.NewMockItemService(controller)
-		mockApplicationContext := context.MockApplicationContext(nil, *mockItemService)
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
-				mockItemService.EXPECT().GetItems(tt.pagination).Return([]item.Item{}, errors.New("error"))
+				mockItemService.EXPECT().GetItems(nil).Return([]item.Item{}, errors.New("error"))
 			} else {
-				mockItemService.EXPECT().GetItems(tt.pagination).Return([]item.Item{}, nil)
+				if tt.pagination == nil {
+					mockItemService.EXPECT().GetItems(nil).Return([]item.Item{}, nil)
+				} else {
+					mockItemService.EXPECT().GetItems(tt.pagination).Return([]item.Item{}, nil)
+				}
 			}
-			req := httptest.NewRequest(http.MethodGet, "/?last_id=0&page_size=10", nil)
+			var target string
+			if tt.pagination == nil {
+				target = fmt.Sprintf("/")
+			} else {
+				target = fmt.Sprintf("/?last_id=%d&page_size=%d", tt.pagination.LastId, tt.pagination.PageSize)
+			}
+			req := httptest.NewRequest(http.MethodGet, target, nil)
 			rec := httptest.NewRecorder()
 
 			c := echo.New().NewContext(req, rec)
 			handler := AllItems(mockApplicationContext)
-			if err := handler(c); (err != nil) != (tt.expectedStatusCode == http.StatusInternalServerError) {
+			err := handler(c)
+			if err != nil {
 				t.Errorf("AllItems() error = %v, expectedStatusCode %v", err, tt.expectedStatusCode)
 			}
-			if rec.Code != tt.expectedStatusCode {
+			if rec.Result().StatusCode != tt.expectedStatusCode {
 				t.Errorf("AllItems() = %v, expectedStatusCode %v", rec.Code, tt.expectedStatusCode)
 			}
 		})

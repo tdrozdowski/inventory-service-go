@@ -22,7 +22,7 @@ func TestMockApplicationContext(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockPersonService := person.NewMockPersonService(controller)
 	mockItemService := item.NewMockItemService(controller)
-	appCtx := MockApplicationContext(mockPersonService, *mockItemService)
+	appCtx := MockApplicationContext(mockPersonService, mockItemService)
 	if _, ok := appCtx.AuthProvider().(auth.AuthProvider); !ok {
 		t.Error("AuthProvider in mocked context should be of type *auth.AuthProvider")
 	}

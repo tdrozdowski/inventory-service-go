@@ -64,7 +64,7 @@ func TestAuthorize(t *testing.T) {
 			// Mock ApplicationContext
 			mockPersonService := person.NewMockPersonService(controller)
 			mockItemService := item.NewMockItemService(controller)
-			mockContext := context.MockApplicationContext(mockPersonService, *mockItemService)
+			mockContext := context.MockApplicationContext(mockPersonService, mockItemService)
 
 			// Test function
 			if assert.NoError(t, Authorize(mockContext)(c)) {
