@@ -222,7 +222,7 @@ func TestItemRepositoryImpl_GetAllWithPagination(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"alt_id", "name", "description", "unit_price", "created_by", "created_at", "last_changed_by", "last_update"}).
 		AddRow(itemtest2.AltId, itemtest2.Name, itemtest2.Description, itemtest2.UnitPrice, itemtest2.CreatedBy, time.Now(), itemtest2.CreatedBy, time.Now())
 
-	mock.ExpectQuery("^SELECT (.+) FROM items WHERE id > \\$1 OFFSET \\$2$").
+	mock.ExpectQuery("^SELECT (.+) FROM items WHERE id > \\$1 LIMIT \\$2$").
 		WillReturnRows(rows)
 
 	itemRepo := NewItemRepository(sqlx.NewDb(db, ""))
