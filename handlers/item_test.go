@@ -148,11 +148,13 @@ func TestHandlers_CreateItem(t *testing.T) {
 func TestHandlers_UpdateItem(t *testing.T) {
 	expectedUuid := uuid.New()
 	now := time.RFC3339
+	pathId := expectedUuid.String()
 	tests := []struct {
 		name               string
 		updateItemRequest  item.UpdateItemRequest
 		expectedResults    item.Item
 		expectedStatusCode int
+		pathId             string
 	}{
 		{
 			name: "OK with a valid request",
@@ -176,17 +178,39 @@ func TestHandlers_UpdateItem(t *testing.T) {
 				},
 			},
 			expectedStatusCode: http.StatusOK,
+			pathId:             pathId,
 		},
 		{
-			name: "Fail with invalid item Id",
+			name:               "Fail with invalid request json",
+			updateItemRequest:  item.UpdateItemRequest{},
+			expectedResults:    item.Item{},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name: "Fail with mismatched item Id",
 			updateItemRequest: item.UpdateItemRequest{
-				Id:          uuid.UUID{},
-				Name:        "TV",
-				Description: "New TV Description",
-				UnitPrice:   19.99,
+				Id:            expectedUuid,
+				Name:          "TV",
+				Description:   "New TV Description",
+				UnitPrice:     19.99,
+				LastChangedBy: "Unit Test",
 			},
 			expectedResults:    item.Item{},
 			expectedStatusCode: http.StatusBadRequest,
+			pathId:             uuid.NewString(),
+		},
+		{
+			name: "Fail with bad path id",
+			updateItemRequest: item.UpdateItemRequest{
+				Id:            expectedUuid,
+				Name:          "TV",
+				Description:   "New TV Description",
+				UnitPrice:     19.99,
+				LastChangedBy: "Unit Test",
+			},
+			expectedResults:    item.Item{},
+			expectedStatusCode: http.StatusBadRequest,
+			pathId:             "not a uuid",
 		},
 		{
 			name: "Fail with Internal Server Error",
@@ -199,6 +223,7 @@ func TestHandlers_UpdateItem(t *testing.T) {
 			},
 			expectedResults:    item.Item{},
 			expectedStatusCode: http.StatusInternalServerError,
+			pathId:             pathId,
 		},
 	}
 	controller := gomock.NewController(t)
@@ -217,7 +242,7 @@ func TestHandlers_UpdateItem(t *testing.T) {
 				t.Errorf("UpdateItem() error = %v", err)
 			}
 			var req *http.Request
-			if tt.expectedStatusCode == http.StatusBadRequest {
+			if tt.expectedStatusCode == http.StatusBadRequest && tt.updateItemRequest.Id == uuid.Nil {
 				invalidPayload := []byte(`not json`)
 				req = httptest.NewRequest(http.MethodPut, "/", bytes.NewReader(invalidPayload))
 			} else {
@@ -228,7 +253,7 @@ func TestHandlers_UpdateItem(t *testing.T) {
 			c := e.NewContext(req, rec)
 			c.SetPath("/:id")
 			c.SetParamNames("id")
-			c.SetParamValues(tt.updateItemRequest.Id.String())
+			c.SetParamValues(tt.pathId)
 			err = UpdateItem(mockApplicationContext)(c)
 			if err != nil {
 				t.Errorf("UpdateItem() error = %v, expectedStatusCode %v", err, tt.expectedStatusCode)
