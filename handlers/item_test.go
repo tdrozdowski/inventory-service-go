@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -264,3 +265,130 @@ func TestHandlers_UpdateItem(t *testing.T) {
 		})
 	}
 }
+func TestHandlers_GetItem(t *testing.T) {
+	expectedUuid := uuid.New()
+	pathId := expectedUuid.String()
+	tests := []struct {
+		name               string
+		id                 string
+		expectedItem       *item.Item
+		expectedStatusCode int
+	}{
+		{
+			name:               "OK with a valid item ID",
+			id:                 pathId,
+			expectedItem:       &item.Item{},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "Fail with invalid item ID",
+			id:                 "invalidUuid",
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "Fail with non-existing item",
+			id:                 pathId,
+			expectedStatusCode: http.StatusNotFound,
+		},
+		{
+			name:               "Fail with Internal Server Error",
+			id:                 pathId,
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+	}
+	controller := gomock.NewController(t)
+	for _, tt := range tests {
+		mockItemService := item.NewMockItemService(controller)
+		mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectedStatusCode == http.StatusInternalServerError {
+				mockItemService.EXPECT().GetItem(expectedUuid).Return(nil, errors.New("error"))
+			} else if tt.expectedStatusCode == http.StatusNotFound {
+				mockItemService.EXPECT().GetItem(expectedUuid).Return(nil, sql.ErrNoRows)
+			} else if tt.expectedStatusCode == http.StatusOK {
+				mockItemService.EXPECT().GetItem(expectedUuid).Return(tt.expectedItem, nil)
+			}
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/%v", tt.id), nil)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetPath("/:id")
+			c.SetParamNames("id")
+			c.SetParamValues(tt.id)
+			err := GetItem(mockApplicationContext)(c)
+			if err != nil {
+				t.Errorf("GetItem() error = %v, expectedStatusCode %v", err, tt.expectedStatusCode)
+			}
+			if rec.Result().StatusCode != tt.expectedStatusCode {
+				t.Errorf("GetItem() = %v, expectedStatusCode %v", rec.Code, tt.expectedStatusCode)
+			}
+		})
+	}
+	controller.Finish()
+}
+
+func TestHandlers_DeleteItem(t *testing.T) {
+	expectedUuid := uuid.New()
+	pathId := expectedUuid.String()
+	expectedResults := commons.DeleteResult{
+		Id:      expectedUuid,
+		Deleted: true,
+	}
+	tests := []struct {
+		name               string
+		id                 string
+		expectedStatusCode int
+	}{
+		{
+			name:               "OK with a valid item ID",
+			id:                 pathId,
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "Fail with invalid item ID",
+			id:                 "invalidUuid",
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "Fail with non-existing item",
+			id:                 pathId,
+			expectedStatusCode: http.StatusNotFound,
+		},
+		{
+			name:               "Fail with Internal Server Error",
+			id:                 pathId,
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+	}
+	controller := gomock.NewController(t)
+	for _, tt := range tests {
+		mockItemService := item.NewMockItemService(controller)
+		mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectedStatusCode == http.StatusInternalServerError {
+				mockItemService.EXPECT().DeleteItem(expectedUuid).Return(nil, errors.New("error"))
+			} else if tt.expectedStatusCode == http.StatusNotFound {
+				mockItemService.EXPECT().DeleteItem(expectedUuid).Return(nil, sql.ErrNoRows)
+			} else if tt.expectedStatusCode == http.StatusOK {
+				mockItemService.EXPECT().DeleteItem(expectedUuid).Return(&expectedResults, nil)
+			}
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/%v", tt.id), nil)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetPath("/:id")
+			c.SetParamNames("id")
+			c.SetParamValues(tt.id)
+			err := DeleteItem(mockApplicationContext)(c)
+			if err != nil {
+				t.Errorf("DeleteItem() error = %v, expectedStatusCode %v", err, tt.expectedStatusCode)
+			}
+			if rec.Result().StatusCode != tt.expectedStatusCode {
+				t.Errorf("DeleteItem() = %v, expectedStatusCode %v", rec.Code, tt.expectedStatusCode)
+			}
+		})
+	}
+	controller.Finish()
+}
+
+// End of file
