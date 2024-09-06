@@ -46,9 +46,10 @@ type CreateInvoiceRequest struct {
 }
 
 type UpdateInvoiceRequest struct {
-	Paid          bool    `json:"paid"`
-	Total         float64 `json:"total"`
-	LastChangedBy string  `json:"last_changed_by"`
+	Id            uuid.UUID `json:"id"`
+	Paid          bool      `json:"paid"`
+	Total         float64   `json:"total"`
+	LastChangedBy string    `json:"last_changed_by"`
 }
 
 type AddItemsToInvoiceRequest struct {
@@ -76,11 +77,18 @@ func NewInvoiceRepository(db *sqlx.DB) *InvoiceRepositoryImpl {
 }
 
 const (
-	CREATE_QUERY = `INSERT INTO invoices (user_id, total, paid, created_by) VALUES ($1, $2, $3, $4) RETURNING *`
+	CreateQuery = `INSERT INTO invoices (user_id, total, paid, created_by) VALUES ($1, $2, $3, $4) RETURNING *`
+	UpdateQuery = `UPDATE invoices SET total = $2, paid = $3, last_changed_by = $4 WHERE alt_id = $1 RETURNING *`
 )
 
 func (r *InvoiceRepositoryImpl) CreateInvoice(request CreateInvoiceRequest) (InvoiceRow, error) {
 	var results = InvoiceRow{}
-	err := r.db.Get(&results, CREATE_QUERY, request.UserId, request.Paid, request.Total, request.CreatedBy)
+	err := r.db.Get(&results, CreateQuery, request.UserId, request.Paid, request.Total, request.CreatedBy)
+	return results, err
+}
+
+func (r *InvoiceRepositoryImpl) UpdateInvoice(request UpdateInvoiceRequest) (InvoiceRow, error) {
+	var results = InvoiceRow{}
+	err := r.db.Get(&results, UpdateQuery, request.Id, request.Total, request.Paid, request.LastChangedBy)
 	return results, err
 }
