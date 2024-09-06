@@ -90,7 +90,11 @@ func (r *ItemRepositoryImpl) GetItems(pagination *commons.Pagination) ([]ItemRow
 }
 
 func (r *ItemRepositoryImpl) DeleteItem(id uuid.UUID) (commons.DeleteResult, error) {
-	var result commons.DeleteResult
-	err := r.db.Get(&result, DELETE_BY_ID_QUERY, id)
-	return result, err
+	sqlResults := r.db.MustExec(DELETE_BY_ID_QUERY, id)
+	rowsAffected, _ := sqlResults.RowsAffected()
+	result := commons.DeleteResult{
+		Id:      id,
+		Deleted: rowsAffected > 0,
+	}
+	return result, nil
 }

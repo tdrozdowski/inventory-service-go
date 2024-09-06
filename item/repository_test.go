@@ -1,7 +1,6 @@
 package item
 
 import (
-	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -267,18 +266,20 @@ func TestItemRepositoryImpl_DeleteItem(t *testing.T) {
 			itemRepo := NewItemRepository(sqlx.NewDb(db, ""))
 
 			if !tt.wantErr {
-				mock.ExpectQuery("^DELETE FROM items WHERE alt_id = \\$1").
+				mock.ExpectExec("^DELETE FROM items WHERE alt_id = \\$1").
 					WithArgs(tt.id).
-					WillReturnRows(sqlmock.NewRows([]string{"id", "deleted"}).AddRow(tt.id, true))
+					WillReturnResult(sqlmock.NewResult(1, 1))
 			} else {
-				mock.ExpectQuery("^DELETE FROM items WHERE alt_id = \\$1").
+				mock.ExpectExec("^DELETE FROM items WHERE alt_id = \\$1").
 					WithArgs(tt.id).
-					WillReturnError(sql.ErrNoRows)
+					WillReturnResult(sqlmock.NewResult(0, 0))
 			}
 
-			_, err = itemRepo.DeleteItem(tt.id)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DeleteItem() error = %v, wantErr %v", err, tt.wantErr)
+			results, _ := itemRepo.DeleteItem(tt.id)
+			if !tt.wantErr && !results.Deleted {
+				t.Errorf("DeleteItem() error: Results were not deleted")
+			} else if tt.wantErr && results.Deleted {
+				t.Errorf("DeleteItem() results.Deleted = %v, want %v", results.Deleted, true)
 			}
 		})
 	}
