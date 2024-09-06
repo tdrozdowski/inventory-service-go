@@ -4,6 +4,9 @@
 
 Example of inventory service in Go, using SQLx and Echo v5.
 
+NOTE - this does assume you ran the migrations or have a db from the companion Rust project.  See [here](https://github.com/tdrozdowski/inventory-service-rs?tab=readme-ov-file#getting-started) for more details.
+The supporting docker-compose file is included with this project to run the database.
+
 ## Development
 If you care to extend/modify this code, you will need to install a couple tools.
 First off, Google Wire is used to manage Dependency Injection.  Uber's Mock lib is also used to manage the mocks.

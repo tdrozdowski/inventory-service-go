@@ -13,6 +13,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"inventory-service-go/commons"
 	"inventory-service-go/context"
+	"inventory-service-go/item"
 	"inventory-service-go/person"
 	"io"
 	"net/http"
@@ -41,7 +42,8 @@ func TestGetAll(t *testing.T) {
 	pagination := &commons.Pagination{LastId: 0, PageSize: 10}
 	controller := gomock.NewController(t)
 	mockPersonService := person.NewMockPersonService(controller)
-	applicationContext := context.MockApplicationContext(mockPersonService)
+	mockItemService := item.NewMockItemService(controller)
+	applicationContext := context.MockApplicationContext(mockPersonService, mockItemService)
 	expectedPersons := []person.Person{personFixture()}
 	tests := []struct {
 		name         string
@@ -110,7 +112,8 @@ func TestGetById(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockPersonService := person.NewMockPersonService(controller)
-		applicationContext := context.MockApplicationContext(mockPersonService)
+		mockItemService := item.NewMockItemService(controller)
+		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService)
 		expectedPerson := personFixture()
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedCode == http.StatusInternalServerError {
@@ -162,7 +165,8 @@ func TestCreate(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockPersonService := person.NewMockPersonService(controller)
-		applicationContext := context.MockApplicationContext(mockPersonService)
+		mockItemService := item.NewMockItemService(controller)
+		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService)
 		expectedPerson := personFixture()
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedCode == http.StatusInternalServerError {
@@ -214,7 +218,8 @@ func TestUpdate(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockPersonService := person.NewMockPersonService(controller)
-		applicationContext := context.MockApplicationContext(mockPersonService)
+		mockItemService := item.NewMockItemService(controller)
+		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService)
 		expectedPerson := personFixture()
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedCode == http.StatusInternalServerError {
@@ -270,7 +275,8 @@ func TestDelete(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockPersonService := person.NewMockPersonService(controller)
-		applicationContext := context.MockApplicationContext(mockPersonService)
+		mockItemService := item.NewMockItemService(controller)
+		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService)
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedCode == http.StatusInternalServerError {
 				mockPersonService.EXPECT().DeleteByUuid(gomock.Any()).Return(nil, errors.New("Internal Error"))
@@ -294,6 +300,63 @@ func TestDelete(t *testing.T) {
 				msg := fmt.Sprintf("Expected status code %d, got %d", tt.expectedCode, rec.Result().StatusCode)
 				assert.FailNow(t, msg)
 			}
+		})
+	}
+}
+
+func TestPaginationFromRequest(t *testing.T) {
+	tests := []struct {
+		name         string
+		request      echo.Context
+		expectedPage *commons.Pagination
+	}{
+		{
+			name: "No pagination parameters",
+			request: echo.New().NewContext(
+				httptest.NewRequest(http.MethodGet, "/", nil),
+				httptest.NewRecorder(),
+			),
+			expectedPage: nil,
+		},
+		{
+			name: "Valid pagination parameters",
+			request: echo.New().NewContext(
+				httptest.NewRequest(http.MethodGet, "/?last_id=5&page_size=15", nil),
+				httptest.NewRecorder(),
+			),
+			expectedPage: &commons.Pagination{
+				LastId:   5,
+				PageSize: 15,
+			},
+		},
+		{
+			name: "Invalid LastId, valid PageSize",
+			request: echo.New().NewContext(
+				httptest.NewRequest(http.MethodGet, "/?last_id=invalid&page_size=15", nil),
+				httptest.NewRecorder(),
+			),
+			expectedPage: &commons.Pagination{
+				LastId:   0,
+				PageSize: 15,
+			},
+		},
+		{
+			name: "Valid LastId, invalid PageSize",
+			request: echo.New().NewContext(
+				httptest.NewRequest(http.MethodGet, "/?last_id=5&page_size=invalid", nil),
+				httptest.NewRecorder(),
+			),
+			expectedPage: &commons.Pagination{
+				LastId:   5,
+				PageSize: 10,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actualPage := paginationFromRequest(tt.request)
+			assert.Equal(t, tt.expectedPage, actualPage)
 		})
 	}
 }

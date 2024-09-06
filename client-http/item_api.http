@@ -1,0 +1,62 @@
+POST http://localhost:8080/api/v1/authorize
+Content-Type: application/json
+
+{
+  "client_id": "foo",
+  "client_secret": "bar"
+}
+
+> {%
+    client.global.set("access_token", response.body.token);
+%}
+
+###
+OPTIONS http://localhost:8080/api/v1/items?page_size=100
+
+###
+
+GET http://localhost:8080/api/v1/items?last_id=1&page_size=100
+Authorization: Bearer {{access_token}}
+
+###
+
+
+POST http://localhost:8080/api/v1/items
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "name": "Item 5",
+  "description": "Item 5 description",
+  "unit_price": 5.00,
+  "created_by": "http_client_test"
+}
+
+> {%
+    client.global.set("new_item_id", response.body.id);
+%}
+
+###
+
+PUT http://localhost:8080/api/v1/items/{{new_item_id}}
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "id": "{{new_item_id}}",
+  "name": "Item 5",
+  "description": "Item 5 description updated",
+  "unit_price": 15.00,
+  "changed_by": "http_client_test"
+}
+
+###
+
+GET http://localhost:8080/api/v1/items/{{new_item_id}}
+Authorization: Bearer {{access_token}}
+
+###
+DELETE http://localhost:8080/api/v1/items/{{new_item_id}}
+Authorization: Bearer {{access_token}}
+
+###

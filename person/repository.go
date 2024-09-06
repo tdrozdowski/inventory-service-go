@@ -35,7 +35,6 @@ type UpdatePersonRequest struct {
 // PersonRepository Interface for PersonRepository
 type PersonRepository interface {
 	GetAll(pagination *commons.Pagination) ([]PersonRow, error)
-	GetById(id int) (PersonRow, error)
 	GetByUuid(uuid uuid.UUID) (PersonRow, error)
 	Create(request CreatePersonRequest) (PersonRow, error)
 	Update(request UpdatePersonRequest) (PersonRow, error)
@@ -53,7 +52,7 @@ func NewPersonRepository(db *sqlx.DB) *PersonRepositoryImpl {
 }
 
 func (p *PersonRepositoryImpl) GetAll(pagination *commons.Pagination) ([]PersonRow, error) {
-	// uses sqlx to query the perons table and retreive all rows
+	// uses sqlx to query the persons table and retrive all rows
 	var persons []PersonRow
 	if pagination != nil {
 		err := p.db.Select(&persons, "SELECT * FROM persons WHERE id > $1 LIMIT $2", pagination.LastId, pagination.PageSize)
@@ -67,16 +66,6 @@ func (p *PersonRepositoryImpl) GetAll(pagination *commons.Pagination) ([]PersonR
 		}
 	}
 	return persons, nil
-}
-
-func (p *PersonRepositoryImpl) GetById(id int) (PersonRow, error) {
-	// uses sqlx to query the persons table and retrieve a single row by id
-	var person PersonRow
-	err := p.db.Get(&person, "SELECT * FROM persons WHERE id = $1", id)
-	if err != nil {
-		return PersonRow{}, err
-	}
-	return person, nil
 }
 
 func (p *PersonRepositoryImpl) GetByUuid(uuid uuid.UUID) (PersonRow, error) {

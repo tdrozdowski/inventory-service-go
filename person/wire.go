@@ -8,7 +8,13 @@ import (
 	"inventory-service-go/commons"
 )
 
-func InitializePersonService() PersonService {
-	wire.Build(NewPersonService, NewPersonRepository, commons.GetDB)
-	return PersonService{}
+func InitializePersonService() (PersonService, error) {
+	wire.Build(
+		NewPersonService,
+		NewPersonRepository,
+		commons.GetDB,
+		wire.Bind(new(PersonRepository), new(*PersonRepositoryImpl)),
+		wire.Bind(new(PersonService), new(*PersonServiceImpl)),
+	)
+	return nil, nil
 }

@@ -12,18 +12,22 @@ import (
 
 func paginationFromRequest(c echo.Context) *commons.Pagination {
 	lastIdStr := c.QueryParam("last_id")
-	lastId, err := strconv.Atoi(lastIdStr)
-	if err != nil {
-		lastId = 0
-	}
 	pageSizeStr := c.QueryParam("page_size")
-	pageSize, err := strconv.Atoi(pageSizeStr)
-	if err != nil {
-		pageSize = 10
-	}
-	return &commons.Pagination{
-		LastId:   lastId,
-		PageSize: pageSize,
+	if lastIdStr == "" && pageSizeStr == "" {
+		return nil
+	} else {
+		lastId, err := strconv.Atoi(lastIdStr)
+		if err != nil {
+			lastId = 0
+		}
+		pageSize, err := strconv.Atoi(pageSizeStr)
+		if err != nil {
+			pageSize = 10
+		}
+		return &commons.Pagination{
+			LastId:   lastId,
+			PageSize: pageSize,
+		}
 	}
 }
 
