@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"inventory-service-go/context"
 	"inventory-service-go/item"
@@ -10,6 +11,7 @@ import (
 func ItemRoutes(p *echo.Group, appContext context.ApplicationContext) {
 	p.GET("/items", AllItems(appContext))
 	p.POST("/items", CreateItem(appContext))
+	p.PUT("/items/:id", UpdateItem(appContext))
 }
 
 func AllItems(appContext context.ApplicationContext) func(c echo.Context) error {
@@ -33,6 +35,30 @@ func CreateItem(appContext context.ApplicationContext) func(c echo.Context) erro
 		}
 		itemService := appContext.ItemService()
 		results, err := itemService.CreateItem(createItemRequest)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusOK, results)
+	}
+}
+
+func UpdateItem(appContext context.ApplicationContext) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		var updateItemRequest item.UpdateItemRequest
+		err := c.Bind(&updateItemRequest)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		idParam := c.Param("id")
+		id, err := uuid.Parse(idParam)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		if id != updateItemRequest.Id {
+			return c.JSON(http.StatusBadRequest, "id in path does not match id in body")
+		}
+		itemService := appContext.ItemService()
+		results, err := itemService.UpdateItem(updateItemRequest)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}

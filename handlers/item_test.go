@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/mock/gomock"
 	"inventory-service-go/commons"
@@ -128,7 +129,7 @@ func TestHandlers_CreateItem(t *testing.T) {
 				if err != nil {
 					t.Errorf("CreateItem() error = %v", err)
 				}
-				req = httptest.NewRequest(http.MethodPost, "/", io.NopCloser(bytes.NewReader(requestJson)))
+				req = httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(requestJson))
 			}
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
@@ -139,6 +140,101 @@ func TestHandlers_CreateItem(t *testing.T) {
 			}
 			if rec.Result().StatusCode != tt.expectedStatusCode {
 				t.Errorf("CreateItem() = %v, expectedStatusCode %v", rec.Code, tt.expectedStatusCode)
+			}
+		})
+	}
+}
+
+func TestHandlers_UpdateItem(t *testing.T) {
+	expectedUuid := uuid.New()
+	now := time.RFC3339
+	tests := []struct {
+		name               string
+		updateItemRequest  item.UpdateItemRequest
+		expectedResults    item.Item
+		expectedStatusCode int
+	}{
+		{
+			name: "OK with a valid request",
+			updateItemRequest: item.UpdateItemRequest{
+				Id:            expectedUuid,
+				Name:          "Updated TV",
+				Description:   "Updated TV Description",
+				UnitPrice:     14.99,
+				LastChangedBy: "Unit Test",
+			},
+			expectedResults: item.Item{
+				Id:          expectedUuid,
+				Name:        "Updated TV",
+				Description: "Updated TV Description",
+				UnitPrice:   14.99,
+				AuditInfo: commons.AuditInfo{
+					CreatedBy:     "Unit Test",
+					CreatedAt:     now,
+					LastUpdate:    "Unit Test",
+					LastChangedBy: now,
+				},
+			},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name: "Fail with invalid item Id",
+			updateItemRequest: item.UpdateItemRequest{
+				Id:          uuid.UUID{},
+				Name:        "TV",
+				Description: "New TV Description",
+				UnitPrice:   19.99,
+			},
+			expectedResults:    item.Item{},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name: "Fail with Internal Server Error",
+			updateItemRequest: item.UpdateItemRequest{
+				Id:            expectedUuid,
+				Name:          "Updated TV",
+				Description:   "Updated TV Description",
+				UnitPrice:     14.99,
+				LastChangedBy: "Unit Test",
+			},
+			expectedResults:    item.Item{},
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+	}
+	controller := gomock.NewController(t)
+	for _, tt := range tests {
+		mockItemService := item.NewMockItemService(controller)
+		mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectedStatusCode == http.StatusInternalServerError {
+				mockItemService.EXPECT().UpdateItem(gomock.Any()).Return(nil, errors.New("error"))
+			} else if tt.expectedStatusCode == http.StatusOK {
+				mockItemService.EXPECT().UpdateItem(tt.updateItemRequest).Return(&tt.expectedResults, nil)
+			}
+			e := echo.New()
+			requestJson, err := json.Marshal(tt.updateItemRequest)
+			if err != nil {
+				t.Errorf("UpdateItem() error = %v", err)
+			}
+			var req *http.Request
+			if tt.expectedStatusCode == http.StatusBadRequest {
+				invalidPayload := []byte(`not json`)
+				req = httptest.NewRequest(http.MethodPut, "/", bytes.NewReader(invalidPayload))
+			} else {
+				req = httptest.NewRequest(http.MethodPut, fmt.Sprintf("/%v", tt.updateItemRequest.Id), io.NopCloser(bytes.NewReader(requestJson)))
+				req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			}
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetPath("/:id")
+			c.SetParamNames("id")
+			c.SetParamValues(tt.updateItemRequest.Id.String())
+			err = UpdateItem(mockApplicationContext)(c)
+			if err != nil {
+				t.Errorf("UpdateItem() error = %v, expectedStatusCode %v", err, tt.expectedStatusCode)
+			}
+			if rec.Result().StatusCode != tt.expectedStatusCode {
+				t.Errorf("UpdateItem() = %v, expectedStatusCode %v", rec.Code, tt.expectedStatusCode)
 			}
 		})
 	}
