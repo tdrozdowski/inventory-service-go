@@ -38,7 +38,7 @@ const (
 	UPDATE_STATEMENT              = "UPDATE items SET name = $1, description = $2, unit_price = $3, last_changed_by = $4 WHERE alt_id = $5 returning *"
 	GET_BY_ID_QUERY               = "SELECT * FROM items WHERE alt_id = $1"
 	GET_ALL_QUERY                 = "SELECT * FROM items"
-	GET_ALL_QUERY_WITH_PAGINATION = "SELECT * FROM items WHERE id > $1 OFFSET $2"
+	GET_ALL_QUERY_WITH_PAGINATION = "SELECT * FROM items WHERE id > $1 LIMIT $2"
 	DELETE_BY_ID_QUERY            = "DELETE FROM items WHERE alt_id = $1"
 )
 
