@@ -113,3 +113,11 @@ func (s *InvoiceServiceImpl) CreateInvoice(invoice CreateInvoiceRequest) (Invoic
 	}
 	return fromRow(invoiceRow), nil
 }
+
+func (s *InvoiceServiceImpl) UpdateInvoice(invoice UpdateInvoiceRequest) (Invoice, error) {
+	invoiceRow, err := s.repo.UpdateInvoice(invoice)
+	if err != nil {
+		return Invoice{}, err
+	}
+	return fromRow(invoiceRow), nil
+}

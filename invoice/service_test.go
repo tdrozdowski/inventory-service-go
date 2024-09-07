@@ -251,3 +251,70 @@ func TestInvoiceService_CreateInvoice(t *testing.T) {
 		})
 	}
 }
+
+func TestInvoiceService_UpdateInvoice(t *testing.T) {
+	invoiceRow := InvoiceRow{
+		Id:            1,
+		AltId:         uuid.New(),
+		UserId:        uuid.New(),
+		Total:         10.0,
+		Paid:          true,
+		CreatedBy:     "Unit Test",
+		CreatedAt:     time.Now(),
+		LastChangedBy: "Unit Test",
+		LastUpdate:    time.Now(),
+	}
+	emptyInvoiceRow := InvoiceRow{}
+	invoice := fromRow(invoiceRow)
+	updateInvoiceRequest := UpdateInvoiceRequest{
+		Id:            invoiceRow.AltId,
+		Paid:          true,
+		Total:         50.0,
+		LastChangedBy: "Unit Test Update",
+	}
+	emptyInvoice := Invoice{}
+	testCases := []struct {
+		name     string
+		request  UpdateInvoiceRequest
+		want     Invoice
+		wantErr  bool
+		mockFunc func(mockRepo *MockInvoiceRepository, request UpdateInvoiceRequest)
+	}{
+		{
+			name:    "Update Invoice Successfully",
+			request: updateInvoiceRequest,
+			want:    invoice,
+			wantErr: false,
+			mockFunc: func(mockRepo *MockInvoiceRepository, request UpdateInvoiceRequest) {
+				mockRepo.EXPECT().UpdateInvoice(request).Return(invoiceRow, nil)
+			},
+		},
+		{
+			name:    "Update Invoice - Repo Error",
+			request: updateInvoiceRequest,
+			want:    emptyInvoice,
+			wantErr: true,
+			mockFunc: func(mockRepo *MockInvoiceRepository, request UpdateInvoiceRequest) {
+				mockRepo.EXPECT().UpdateInvoice(request).Return(emptyInvoiceRow, errors.New("Repo Error"))
+			},
+		},
+	}
+	controller := gomock.NewController(t)
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := NewMockInvoiceRepository(controller)
+			tt.mockFunc(mockRepo, tt.request)
+			service := NewInvoiceService(mockRepo)
+			result, err := service.UpdateInvoice(tt.request)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("InvoiceService.UpdateInvoice() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.Equal(t, tt.want, result)
+			}
+		})
+	}
+}
