@@ -1,6 +1,7 @@
 package invoice
 
 import (
+	"database/sql/driver"
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
@@ -149,14 +150,14 @@ func TestInvoiceRepositoryImpl_AddItemsToInvoice(t *testing.T) {
 	}
 	testCases := []struct {
 		name    string
-		request AddItemsToInvoiceRequest
+		request ItemsToInvoiceRequest
 		items   []SimpleInvoiceItem
 		rows    *sqlmock.Rows
 		wantErr bool
 	}{
 		{
 			name: "Successful Items Addition",
-			request: AddItemsToInvoiceRequest{
+			request: ItemsToInvoiceRequest{
 				InvoiceId: invoiceId,
 				Items:     []uuid.UUID{itemId1, itemId2},
 			},
@@ -177,7 +178,7 @@ func TestInvoiceRepositoryImpl_AddItemsToInvoice(t *testing.T) {
 		},
 		{
 			name: "Failed Items Addition",
-			request: AddItemsToInvoiceRequest{
+			request: ItemsToInvoiceRequest{
 				InvoiceId: uuid.New(),
 				Items:     []uuid.UUID{uuid.New(), uuid.New()},
 			},
@@ -445,6 +446,64 @@ func TestInvoiceRepositoryImpl_GetAllForUser(t *testing.T) {
 				assert.Nil(t, err)
 				assert.NotNil(t, result)
 				assert.Equal(t, len(result), tc.expectedLength)
+			}
+		})
+	}
+}
+func TestInvoiceRepositoryImpl_RemoveItemFromInvoice(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	invoiceId := uuid.New()
+	itemId := uuid.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	testCases := []struct {
+		name    string
+		request SimpleInvoiceItem
+		rows    driver.Result
+		wantErr bool
+	}{
+		{
+			name: "Successful Removal of Item",
+			request: SimpleInvoiceItem{
+				InvoiceId: invoiceId,
+				ItemId:    itemId,
+			},
+			rows:    sqlmock.NewResult(1, 1),
+			wantErr: false,
+		},
+		{
+			name: "Failed Item Removal",
+			request: SimpleInvoiceItem{
+				InvoiceId: invoiceId,
+				ItemId:    itemId,
+			},
+			rows:    sqlmock.NewErrorResult(errors.New("error")),
+			wantErr: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.wantErr {
+				mock.ExpectExec("DELETE FROM invoices_items WHERE invoice_id = $1 AND item_id = $2").
+					WithArgs(tc.request.InvoiceId, tc.request.ItemId).
+					WillReturnError(errors.New("error"))
+			} else {
+				mock.ExpectExec("DELETE FROM invoices_items WHERE invoice_id = $1 AND item_id = $2").
+					WithArgs(tc.request.InvoiceId, tc.request.ItemId).
+					WillReturnResult(tc.rows)
+			}
+
+			r := NewInvoiceRepository(sqlx.NewDb(db, "mockDb"))
+
+			results, err := r.RemoveItemFromInvoice(tc.request)
+			if tc.wantErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				assert.True(t, results.Success)
+				assert.Equal(t, results.InvoiceId, tc.request.InvoiceId)
+				assert.Equal(t, results.Items[0], tc.request.ItemId)
 			}
 		})
 	}
