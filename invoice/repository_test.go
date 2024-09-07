@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
+	"inventory-service-go/commons"
 	"testing"
 	"time"
 )
@@ -327,6 +328,123 @@ func TestInvoiceRepositoryImpl_GetInvoiceWithItems(t *testing.T) {
 				assert.Equal(t, results[0].AltId, invoiceId)
 				assert.Equal(t, results[0].ItemName, "Item1")
 				assert.Equal(t, results[1].ItemName, "Item2")
+			}
+		})
+	}
+}
+
+func TestInvoiceRepositoryImpl_GetAll(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	testCases := []struct {
+		name           string
+		pagination     *commons.Pagination
+		rows           *sqlmock.Rows
+		expectedLength int
+		wantErr        bool
+	}{
+		{
+			name:       "Successful Fetching All Invoices Without Pagination",
+			pagination: nil,
+			rows: sqlmock.NewRows([]string{"id", "alt_id", "user_id", "paid", "total", "created_by", "created_at", "last_update", "last_changed_by"}).
+				AddRow(1, uuid.New(), uuid.New(), true, 123.45, "test_user", time.Now(), time.Now(), "test_user").
+				AddRow(2, uuid.New(), uuid.New(), false, 543.21, "test_user", time.Now(), time.Now(), "test_user"),
+			expectedLength: 2,
+			wantErr:        false,
+		},
+		{
+			name:       "Successful Fetching All Invoices With Pagination",
+			pagination: &commons.Pagination{LastId: 1, PageSize: 5},
+			rows: sqlmock.NewRows([]string{"id", "alt_id", "user_id", "paid", "total", "created_by", "created_at", "last_update", "last_changed_by"}).
+				AddRow(2, uuid.New(), uuid.New(), true, 123.45, "test_user", time.Now(), time.Now(), "test_user").
+				AddRow(3, uuid.New(), uuid.New(), false, 543.21, "test_user", time.Now(), time.Now(), "test_user").
+				AddRow(4, uuid.New(), uuid.New(), true, 123.45, "test_user", time.Now(), time.Now(), "test_user").
+				AddRow(5, uuid.New(), uuid.New(), false, 543.21, "test_user", time.Now(), time.Now(), "test_user").
+				AddRow(6, uuid.New(), uuid.New(), true, 123.45, "test_user", time.Now(), time.Now(), "test_user"),
+			expectedLength: 5,
+			wantErr:        false,
+		},
+		{
+			name:       "Failed Fetching All Invoices",
+			pagination: &commons.Pagination{LastId: 1, PageSize: 5},
+			rows:       nil,
+			wantErr:    true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.wantErr && tc.rows == nil {
+				mock.ExpectQuery("SELECT .* FROM invoices").
+					WithArgs().
+					WillReturnError(errors.New("error"))
+			} else {
+				mock.ExpectQuery("SELECT .* FROM invoices").
+					WithArgs().
+					WillReturnRows(tc.rows)
+			}
+			r := NewInvoiceRepository(sqlx.NewDb(db, "mockDb"))
+			result, err := r.GetAll(tc.pagination)
+			if tc.wantErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, len(result), tc.expectedLength)
+			}
+		})
+	}
+}
+
+func TestInvoiceRepositoryImpl_GetAllForUser(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	userId := uuid.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	testCases := []struct {
+		name           string
+		id             uuid.UUID
+		rows           *sqlmock.Rows
+		expectedLength int
+		wantErr        bool
+	}{
+		{
+			name: "Successful Fetching All User Invoices",
+			id:   uuid.New(),
+			rows: sqlmock.NewRows([]string{"id", "user_id", "paid", "total", "created_by", "created_at", "last_update", "last_changed_by"}).
+				AddRow(1, userId, true, 123.45, "test_user", time.Now(), time.Now(), "test_user").
+				AddRow(2, userId, false, 543.21, "test_user", time.Now(), time.Now(), "test_user"),
+			expectedLength: 2,
+			wantErr:        false,
+		},
+		{
+			name:    "Failed Fetching All User Invoices",
+			id:      uuid.New(),
+			rows:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.wantErr && tc.rows == nil {
+				mock.ExpectQuery("SELECT * FROM invoices WHERE user_id = \\$1").
+					WithArgs(userId).
+					WillReturnError(errors.New("error"))
+			} else {
+				mock.ExpectQuery("SELECT * FROM invoices WHERE user_id = $1").
+					WithArgs(userId).
+					WillReturnRows(tc.rows)
+			}
+			r := NewInvoiceRepository(sqlx.NewDb(db, "mockDb"))
+			result, err := r.GetAllForUser(userId)
+			if tc.wantErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, len(result), tc.expectedLength)
 			}
 		})
 	}

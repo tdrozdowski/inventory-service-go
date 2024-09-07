@@ -3,6 +3,7 @@ package invoice
 import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"inventory-service-go/commons"
 	"time"
 )
 
@@ -85,7 +86,7 @@ type InvoiceRepository interface {
 	AddItemsToInvoice(request AddItemsToInvoiceRequest) (AddItemsToInvoiceResponse, error)
 	GetInvoice(id uuid.UUID) (InvoiceRow, error)
 	GetInvoiceWithItems(id uuid.UUID) ([]InvoiceItemRow, error)
-	GetAll(id uuid.UUID) ([]InvoiceRow, error)
+	GetAll(pagination *commons.Pagination) ([]InvoiceRow, error)
 	GetAllForUser(userId uuid.UUID) ([]InvoiceRow, error)
 }
 
@@ -98,11 +99,14 @@ func NewInvoiceRepository(db *sqlx.DB) *InvoiceRepositoryImpl {
 }
 
 const (
-	CreateQuery              = `INSERT INTO invoices (user_id, total, paid, created_by) VALUES ($1, $2, $3, $4) RETURNING *`
-	UpdateQuery              = `UPDATE invoices SET total = $2, paid = $3, last_changed_by = $4 WHERE alt_id = $1 RETURNING *`
-	AddItemsToInvoiceQuery   = `INSERT INTO invoices_items (invoice_id, item_id) VALUES (:invoice_id, :item_id)`
-	GetInvoiceQuery          = `SELECT * FROM invoices WHERE alt_id = $1`
-	GetInvoiceWithItemsQuery = `SELECT i.*, i2.alt_id as item_alt_id, i2.name as item_name, description as item_description, i2.unit_price as item_unit_price, i2.created_by as item_created_by, i2.created_at as item_created_at, i2.last_changed_by as item_last_changed_by, i2.last_update as item_last_update  FROM invoices i INNER JOIN invoices_items ii ON i.id = ii.invoice_id INNER JOIN public.items i2 on i2.alt_id = ii.item_id WHERE i.alt_id = $1`
+	CreateQuery               = `INSERT INTO invoices (user_id, total, paid, created_by) VALUES ($1, $2, $3, $4) RETURNING *`
+	UpdateQuery               = `UPDATE invoices SET total = $2, paid = $3, last_changed_by = $4 WHERE alt_id = $1 RETURNING *`
+	AddItemsToInvoiceQuery    = `INSERT INTO invoices_items (invoice_id, item_id) VALUES (:invoice_id, :item_id)`
+	GetInvoiceQuery           = `SELECT * FROM invoices WHERE alt_id = $1`
+	GetInvoiceWithItemsQuery  = `SELECT i.*, i2.alt_id as item_alt_id, i2.name as item_name, description as item_description, i2.unit_price as item_unit_price, i2.created_by as item_created_by, i2.created_at as item_created_at, i2.last_changed_by as item_last_changed_by, i2.last_update as item_last_update  FROM invoices i INNER JOIN invoices_items ii ON i.id = ii.invoice_id INNER JOIN public.items i2 on i2.alt_id = ii.item_id WHERE i.alt_id = $1`
+	GetAllQuery               = `SELECT * FROM invoices`
+	GetAllWithPaginationQuery = `SELECT * FROM invoices WHERE id > $1 LIMIT $2`
+	GetAllForUserQuery        = `SELECT * FROM invoices WHERE user_id = $1`
 )
 
 func (r *InvoiceRepositoryImpl) CreateInvoice(request CreateInvoiceRequest) (InvoiceRow, error) {
@@ -140,5 +144,22 @@ func (r *InvoiceRepositoryImpl) GetInvoice(id uuid.UUID) (InvoiceRow, error) {
 func (r *InvoiceRepositoryImpl) GetInvoiceWithItems(id uuid.UUID) ([]InvoiceItemRow, error) {
 	var results []InvoiceItemRow
 	err := r.db.Select(&results, GetInvoiceWithItemsQuery, id)
+	return results, err
+}
+
+func (r *InvoiceRepositoryImpl) GetAll(pagination *commons.Pagination) ([]InvoiceRow, error) {
+	var results []InvoiceRow
+	var err error
+	if pagination == nil {
+		err = r.db.Select(&results, GetAllQuery)
+	} else {
+		err = r.db.Select(&results, GetAllWithPaginationQuery, pagination.LastId, pagination.PageSize)
+	}
+	return results, err
+}
+
+func (r *InvoiceRepositoryImpl) GetAllForUser(userId uuid.UUID) ([]InvoiceRow, error) {
+	var results []InvoiceRow
+	err := r.db.Select(&results, GetAllForUserQuery, userId)
 	return results, err
 }
