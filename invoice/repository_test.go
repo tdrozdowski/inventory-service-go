@@ -221,3 +221,113 @@ func TestInvoiceRepositoryImpl_AddItemsToInvoice(t *testing.T) {
 		})
 	}
 }
+func TestInvoiceRepositoryImpl_GetInvoice(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	invoiceId := uuid.New()
+
+	testCases := []struct {
+		name    string
+		id      uuid.UUID
+		row     *sqlmock.Rows
+		wantErr bool
+	}{
+		{
+			name: "Successful Invoice Fetching",
+			id:   invoiceId,
+			row: sqlmock.NewRows([]string{"id", "alt_id", "user_id", "paid", "total", "created_by", "created_at", "last_update", "last_changed_by"}).
+				AddRow(1, invoiceId, uuid.New(), true, 123.45, "test_user", time.Now(), time.Now(), "test_user"),
+			wantErr: false,
+		},
+		{
+			name:    "Failed Invoice Fetching",
+			id:      uuid.New(),
+			row:     nil,
+			wantErr: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.wantErr && tc.row == nil {
+				mock.ExpectQuery("SELECT .* FROM invoices WHERE alt_id").
+					WithArgs(tc.id).
+					WillReturnError(errors.New("error"))
+			} else {
+				mock.ExpectQuery("SELECT .* FROM invoices WHERE alt_id").
+					WithArgs(tc.id).
+					WillReturnRows(tc.row)
+			}
+
+			r := NewInvoiceRepository(sqlx.NewDb(db, "mockDb"))
+
+			result, err := r.GetInvoice(tc.id)
+			if tc.wantErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, result.AltId, invoiceId)
+			}
+		})
+	}
+}
+
+func TestInvoiceRepositoryImpl_GetInvoiceWithItems(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	invoiceId := uuid.New()
+	userId := uuid.New()
+	now := time.Now()
+	testCases := []struct {
+		name    string
+		id      uuid.UUID
+		rows    *sqlmock.Rows
+		wantErr bool
+	}{
+		{
+			name: "Successful Getting invoice with items",
+			id:   invoiceId,
+			rows: sqlmock.NewRows([]string{"id", "alt_id", "user_id", "total", "paid", "created_by", "created_at", "last_changed_by", "last_update", "item_name", "item_description", "item_unit_price", "item_created_by", "item_created_at", "item_last_changed_by", "item_last_update"}).
+				AddRow(1, invoiceId, userId, 100.0, true, "unit_test", now, "unit_test", now, "Item1", "Item 1", 12.34, "unit_test", now, "unit_test", now).
+				AddRow(1, invoiceId, userId, 100.0, true, "unit_test", now, "unit_test", now, "Item2", "Item 2", 56.78, "unit_test", now, "unit_test", now),
+			wantErr: false,
+		},
+		{
+			name:    "Failed Getting invoice with items",
+			id:      uuid.New(),
+			rows:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.wantErr && tc.rows == nil {
+				mock.ExpectQuery("SELECT .* FROM invoices_items WHERE invoice_id").
+					WithArgs(tc.id).
+					WillReturnError(errors.New("error"))
+			} else {
+				mock.ExpectQuery("SELECT i.*, i2.alt_id as item_alt_id, i2.name as item_name, description as item_description, i2.unit_price as item_unit_price, i2.created_by as item_created_by, i2.created_at as item_created_at, i2.last_changed_by as item_last_changed_by, i2.last_update as item_last_update FROM invoices i INNER JOIN invoices_items ii ON i.id = ii.invoice_id INNER JOIN public.items i2 on i2.alt_id = ii.item_id WHERE i.alt_id = \\$1").
+					WithArgs(tc.id).
+					WillReturnRows(tc.rows)
+			}
+
+			r := NewInvoiceRepository(sqlx.NewDb(db, "mockDb"))
+
+			results, err := r.GetInvoiceWithItems(tc.id)
+			if tc.wantErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				assert.NotNil(t, results)
+				assert.Equal(t, len(results), 2)
+				assert.Equal(t, results[0].AltId, invoiceId)
+				assert.Equal(t, results[0].ItemName, "Item1")
+				assert.Equal(t, results[1].ItemName, "Item2")
+			}
+		})
+	}
+}
