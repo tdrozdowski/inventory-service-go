@@ -34,6 +34,14 @@ func fromRow(row InvoiceRow) Invoice {
 	}
 }
 
+func fromRows(results []InvoiceRow) []Invoice {
+	invoices := []Invoice{}
+	for _, row := range results {
+		invoices = append(invoices, fromRow(row))
+	}
+	return invoices
+}
+
 func fromRowWithItems(row []InvoiceItemRow) Invoice {
 	var items []item.Item
 	for _, row := range row {
@@ -67,7 +75,7 @@ type InvoiceService interface {
 	CreateInvoice(invoice CreateInvoiceRequest) (Invoice, error)
 	UpdateInvoice(invoice UpdateInvoiceRequest) (Invoice, error)
 	DeleteInvoice(id uuid.UUID) (commons.DeleteResult, error)
-	GetAllInvoices(pagination commons.Pagination) ([]Invoice, error)
+	GetAllInvoices(pagination *commons.Pagination) ([]Invoice, error)
 	AddItemsToInvoice(request ItemsToInvoiceRequest) (ItemsToInvoiceResponse, error)
 	RemoveItemFromInvoice(request SimpleInvoiceItem) (ItemsToInvoiceResponse, error)
 }
@@ -99,10 +107,7 @@ func (s *InvoiceServiceImpl) GetInvoicesForUser(userId uuid.UUID) ([]Invoice, er
 	if err != nil {
 		return nil, err
 	}
-	result := []Invoice{}
-	for _, row := range invoices {
-		result = append(result, fromRow(row))
-	}
+	result := fromRows(invoices)
 	return result, nil
 }
 
@@ -128,4 +133,29 @@ func (s *InvoiceServiceImpl) DeleteInvoice(id uuid.UUID) (commons.DeleteResult, 
 		return commons.DeleteResult{}, err
 	}
 	return results, nil
+}
+
+func (s *InvoiceServiceImpl) GetAllInvoices(pagination *commons.Pagination) ([]Invoice, error) {
+	results, err := s.repo.GetAll(pagination)
+	if err != nil {
+		return nil, err
+	}
+	invoices := fromRows(results)
+	return invoices, nil
+}
+
+func (s *InvoiceServiceImpl) AddItemsToInvoice(request ItemsToInvoiceRequest) (ItemsToInvoiceResponse, error) {
+	results, err := s.repo.AddItemsToInvoice(request)
+	if err != nil {
+		return ItemsToInvoiceResponse{}, err
+	}
+	return results, err
+}
+
+func (s *InvoiceServiceImpl) RemoveItemFromInvoice(request SimpleInvoiceItem) (ItemsToInvoiceResponse, error) {
+	results, err := s.repo.RemoveItemFromInvoice(request)
+	if err != nil {
+		return ItemsToInvoiceResponse{}, err
+	}
+	return results, err
 }

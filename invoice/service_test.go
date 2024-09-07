@@ -360,3 +360,153 @@ func TestInvoiceService_DeleteInvoice(t *testing.T) {
 		})
 	}
 }
+
+func TestInvoiceService_GetAllInvoices(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockRepo := NewMockInvoiceRepository(controller)
+	pag := &commons.Pagination{LastId: 1, PageSize: 5}
+
+	testCases := []struct {
+		name     string
+		want     []Invoice
+		wantErr  bool
+		mockFunc func(mockRepo *MockInvoiceRepository)
+	}{
+		{
+			name:    "Get All Invoices Successfully",
+			want:    make([]Invoice, 0),
+			wantErr: false,
+			mockFunc: func(mockRepo *MockInvoiceRepository) {
+				mockRepo.EXPECT().GetAll(pag).Return([]InvoiceRow{}, nil)
+			},
+		},
+		{
+			name:    "Get All Invoices - Repo Error",
+			want:    make([]Invoice, 0),
+			wantErr: true,
+			mockFunc: func(mockRepo *MockInvoiceRepository) {
+				mockRepo.EXPECT().GetAll(pag).Return(nil, errors.New("Repo Error"))
+			},
+		},
+	}
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockFunc(mockRepo)
+			service := NewInvoiceService(mockRepo)
+			result, err := service.GetAllInvoices(pag)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("InvoiceService.GetAllInvoices() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want, result)
+			}
+		})
+	}
+}
+
+func TestInvoiceService_AddItemsToInvoice(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockRepo := NewMockInvoiceRepository(controller)
+	invoiceUuid := uuid.New()
+	itemUuid1 := uuid.New()
+	itemUuid2 := uuid.New()
+
+	testCases := []struct {
+		name     string
+		request  ItemsToInvoiceRequest
+		want     ItemsToInvoiceResponse
+		wantErr  bool
+		mockFunc func(mockRepo *MockInvoiceRepository, request ItemsToInvoiceRequest)
+	}{
+		{
+			name:    "Add Items To Invoice Successfully",
+			request: ItemsToInvoiceRequest{InvoiceId: invoiceUuid, Items: []uuid.UUID{itemUuid1, itemUuid2}},
+			want:    ItemsToInvoiceResponse{InvoiceId: invoiceUuid, Items: []uuid.UUID{itemUuid1, itemUuid2}, Success: true},
+			wantErr: false,
+			mockFunc: func(mockRepo *MockInvoiceRepository, request ItemsToInvoiceRequest) {
+				mockRepo.EXPECT().AddItemsToInvoice(request).Return(ItemsToInvoiceResponse{InvoiceId: invoiceUuid, Items: []uuid.UUID{itemUuid1, itemUuid2}, Success: true}, nil)
+			},
+		},
+		{
+			name:    "Add Items To Invoice - Repo Error",
+			request: ItemsToInvoiceRequest{InvoiceId: invoiceUuid, Items: []uuid.UUID{itemUuid1, itemUuid2}},
+			want:    ItemsToInvoiceResponse{},
+			wantErr: true,
+			mockFunc: func(mockRepo *MockInvoiceRepository, request ItemsToInvoiceRequest) {
+				mockRepo.EXPECT().AddItemsToInvoice(request).Return(ItemsToInvoiceResponse{}, errors.New("Repo Error"))
+			},
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockFunc(mockRepo, tt.request)
+			service := NewInvoiceService(mockRepo)
+			result, err := service.AddItemsToInvoice(tt.request)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("InvoiceService.AddItemsToInvoice() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want, result)
+			}
+		})
+	}
+}
+
+func TestInvoiceService_RemoveItemFromInvoice(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockRepo := NewMockInvoiceRepository(controller)
+	invoiceUuid := uuid.New()
+	itemUuid := uuid.New()
+
+	testCases := []struct {
+		name     string
+		request  SimpleInvoiceItem
+		mockFunc func(mockRepo *MockInvoiceRepository)
+		want     ItemsToInvoiceResponse
+		wantErr  bool
+	}{
+		{
+			name:    "Remove Item From Invoice Successfully",
+			request: SimpleInvoiceItem{InvoiceId: invoiceUuid, ItemId: itemUuid},
+			mockFunc: func(mockRepo *MockInvoiceRepository) {
+				mockRepo.EXPECT().RemoveItemFromInvoice(gomock.Eq(SimpleInvoiceItem{InvoiceId: invoiceUuid, ItemId: itemUuid})).Return(ItemsToInvoiceResponse{InvoiceId: invoiceUuid, Items: []uuid.UUID{}, Success: true}, nil)
+			},
+			want:    ItemsToInvoiceResponse{InvoiceId: invoiceUuid, Items: []uuid.UUID{}, Success: true},
+			wantErr: false,
+		},
+		{
+			name:    "Remove Item From Invoice - Repo Error",
+			request: SimpleInvoiceItem{InvoiceId: invoiceUuid, ItemId: itemUuid},
+			mockFunc: func(mockRepo *MockInvoiceRepository) {
+				mockRepo.EXPECT().RemoveItemFromInvoice(gomock.Eq(SimpleInvoiceItem{InvoiceId: invoiceUuid, ItemId: itemUuid})).Return(ItemsToInvoiceResponse{}, errors.New("Repo Error"))
+			},
+			want:    ItemsToInvoiceResponse{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockFunc(mockRepo)
+			service := NewInvoiceService(mockRepo)
+			result, err := service.RemoveItemFromInvoice(tt.request)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("InvoiceService.RemoveItemFromInvoice() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.Equal(t, tt.want, result)
+			}
+		})
+	}
+}
