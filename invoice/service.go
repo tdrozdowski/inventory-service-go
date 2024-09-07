@@ -17,7 +17,7 @@ type Invoice struct {
 	AuditInfo commons.AuditInfo
 }
 
-func (i *Invoice) FromRow(row InvoiceRow) Invoice {
+func fromRow(row InvoiceRow) Invoice {
 	return Invoice{
 		Seq:    int(row.Id),
 		Id:     row.AltId,
@@ -34,7 +34,7 @@ func (i *Invoice) FromRow(row InvoiceRow) Invoice {
 	}
 }
 
-func (i *Invoice) FromRowWithItems(row []InvoiceItemRow) Invoice {
+func fromRowWithItems(row []InvoiceItemRow) Invoice {
 	var items []item.Item
 	for _, row := range row {
 		items = append(items, item.Item{
@@ -70,4 +70,26 @@ type InvoiceService interface {
 	GetAllInvoices(pagination commons.Pagination) ([]Invoice, error)
 	AddItemsToInvoice(request ItemsToInvoiceRequest) (ItemsToInvoiceResponse, error)
 	RemoveItemFromInvoice(request SimpleInvoiceItem) (ItemsToInvoiceResponse, error)
+}
+
+type InvoiceServiceImpl struct {
+	repo InvoiceRepository
+}
+
+func NewInvoiceService(repo InvoiceRepository) *InvoiceServiceImpl {
+	return &InvoiceServiceImpl{
+		repo: repo,
+	}
+}
+
+func (s *InvoiceServiceImpl) GetInvoice(id uuid.UUID, withItems bool) (Invoice, error) {
+	if withItems {
+		results, err := s.repo.GetInvoiceWithItems(id)
+		invoice := fromRowWithItems(results)
+		return invoice, err
+	} else {
+		results, err := s.repo.GetInvoice(id)
+		invoice := fromRow(results)
+		return invoice, err
+	}
 }
