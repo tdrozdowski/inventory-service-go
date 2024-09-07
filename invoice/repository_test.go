@@ -508,3 +508,52 @@ func TestInvoiceRepositoryImpl_RemoveItemFromInvoice(t *testing.T) {
 		})
 	}
 }
+
+func TestInvoiceRepositoryImpl_DeleteInvoice(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	testCases := []struct {
+		name    string
+		id      uuid.UUID
+		rows    driver.Result
+		wantErr bool
+	}{
+		{
+			name:    "Successful Deleting Invoice",
+			id:      uuid.New(),
+			rows:    sqlmock.NewResult(1, 1),
+			wantErr: false,
+		},
+		{
+			name:    "Failed Deleting Invoice",
+			id:      uuid.New(),
+			rows:    sqlmock.NewErrorResult(errors.New("error")),
+			wantErr: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.wantErr {
+				mock.ExpectExec("DELETE FROM invoices WHERE alt_id = $1").
+					WithArgs(tc.id).
+					WillReturnError(errors.New("error"))
+			} else {
+				mock.ExpectExec("DELETE FROM invoices WHERE alt_id = $1").
+					WithArgs(tc.id).
+					WillReturnResult(tc.rows)
+			}
+			r := NewInvoiceRepository(sqlx.NewDb(db, "mockDb"))
+
+			result, err := r.DeleteInvoice(tc.id)
+			if tc.wantErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				assert.True(t, result.Deleted)
+				assert.Equal(t, result.Id, tc.id)
+			}
+		})
+	}
+}

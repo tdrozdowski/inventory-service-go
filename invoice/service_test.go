@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	"inventory-service-go/commons"
 	"testing"
 	"time"
 )
@@ -313,6 +314,47 @@ func TestInvoiceService_UpdateInvoice(t *testing.T) {
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
+				assert.Equal(t, tt.want, result)
+			}
+		})
+	}
+}
+
+func TestInvoiceService_DeleteInvoice(t *testing.T) {
+	testCases := []struct {
+		name      string
+		prepare   func(m *MockInvoiceRepository)
+		want      commons.DeleteResult
+		wantError bool
+	}{
+		{
+			name: "Delete Invoice Successfully",
+			prepare: func(m *MockInvoiceRepository) {
+				m.EXPECT().DeleteInvoice(gomock.Any()).Return(commons.DeleteResult{Deleted: true}, nil).AnyTimes()
+			},
+			want:      commons.DeleteResult{Deleted: true},
+			wantError: false,
+		},
+		{
+			name: "Delete Invoice - Repo Error",
+			prepare: func(m *MockInvoiceRepository) {
+				m.EXPECT().DeleteInvoice(gomock.Any()).Return(commons.DeleteResult{}, errors.New("Repo Error")).AnyTimes()
+			},
+			want:      commons.DeleteResult{},
+			wantError: true,
+		},
+	}
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			controller := gomock.NewController(t)
+			mockRepo := NewMockInvoiceRepository(controller)
+			tt.prepare(mockRepo)
+			service := NewInvoiceService(mockRepo)
+			result, err := service.DeleteInvoice(uuid.New())
+			if (err != nil) != tt.wantError {
+				t.Errorf("InvoiceService.DeleteInvoice() error = %v, wantErr %v", err, tt.wantError)
+			}
+			if !tt.wantError {
 				assert.Equal(t, tt.want, result)
 			}
 		})

@@ -121,3 +121,11 @@ func (s *InvoiceServiceImpl) UpdateInvoice(invoice UpdateInvoiceRequest) (Invoic
 	}
 	return fromRow(invoiceRow), nil
 }
+
+func (s *InvoiceServiceImpl) DeleteInvoice(id uuid.UUID) (commons.DeleteResult, error) {
+	results, err := s.repo.DeleteInvoice(id)
+	if err != nil {
+		return commons.DeleteResult{}, err
+	}
+	return results, nil
+}

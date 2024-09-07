@@ -84,6 +84,7 @@ func (r *ItemsToInvoiceRequest) ToSimpleInvoiceItems() []SimpleInvoiceItem {
 type InvoiceRepository interface {
 	CreateInvoice(request CreateInvoiceRequest) (InvoiceRow, error)
 	UpdateInvoice(request UpdateInvoiceRequest) (InvoiceRow, error)
+	DeleteInvoice(id uuid.UUID) (commons.DeleteResult, error)
 	AddItemsToInvoice(request ItemsToInvoiceRequest) (ItemsToInvoiceResponse, error)
 	RemoveItemFromInvoice(request SimpleInvoiceItem) (ItemsToInvoiceResponse, error)
 	GetInvoice(id uuid.UUID) (InvoiceRow, error)
@@ -103,6 +104,7 @@ func NewInvoiceRepository(db *sqlx.DB) *InvoiceRepositoryImpl {
 const (
 	CreateQuery                = `INSERT INTO invoices (user_id, total, paid, created_by) VALUES ($1, $2, $3, $4) RETURNING *`
 	UpdateQuery                = `UPDATE invoices SET total = $2, paid = $3, last_changed_by = $4 WHERE alt_id = $1 RETURNING *`
+	DeleteQuery                = `DELETE FROM invoices WHERE alt_id = $1`
 	AddItemsToInvoiceQuery     = `INSERT INTO invoices_items (invoice_id, item_id) VALUES (:invoice_id, :item_id)`
 	RemoveItemFromInvoiceQuery = `DELETE FROM invoices_items WHERE invoice_id = $1 AND item_id = $2`
 	GetInvoiceQuery            = `SELECT * FROM invoices WHERE alt_id = $1`
@@ -122,6 +124,18 @@ func (r *InvoiceRepositoryImpl) UpdateInvoice(request UpdateInvoiceRequest) (Inv
 	var results = InvoiceRow{}
 	err := r.db.Get(&results, UpdateQuery, request.Id, request.Total, request.Paid, request.LastChangedBy)
 	return results, err
+}
+
+func (r *InvoiceRepositoryImpl) DeleteInvoice(id uuid.UUID) (commons.DeleteResult, error) {
+	result, err := r.db.Exec(DeleteQuery, id)
+	if err != nil {
+		return commons.DeleteResult{}, err
+	}
+	rowsAffected, _ := result.RowsAffected()
+	return commons.DeleteResult{
+		Id:      id,
+		Deleted: rowsAffected > 0,
+	}, nil
 }
 
 func (r *InvoiceRepositoryImpl) AddItemsToInvoice(request ItemsToInvoiceRequest) (ItemsToInvoiceResponse, error) {

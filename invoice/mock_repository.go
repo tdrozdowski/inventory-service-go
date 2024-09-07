@@ -70,6 +70,21 @@ func (mr *MockInvoiceRepositoryMockRecorder) CreateInvoice(request any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInvoice", reflect.TypeOf((*MockInvoiceRepository)(nil).CreateInvoice), request)
 }
 
+// DeleteInvoice mocks base method.
+func (m *MockInvoiceRepository) DeleteInvoice(id uuid.UUID) (commons.DeleteResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteInvoice", id)
+	ret0, _ := ret[0].(commons.DeleteResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteInvoice indicates an expected call of DeleteInvoice.
+func (mr *MockInvoiceRepositoryMockRecorder) DeleteInvoice(id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInvoice", reflect.TypeOf((*MockInvoiceRepository)(nil).DeleteInvoice), id)
+}
+
 // GetAll mocks base method.
 func (m *MockInvoiceRepository) GetAll(pagination *commons.Pagination) ([]InvoiceRow, error) {
 	m.ctrl.T.Helper()
