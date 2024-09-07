@@ -43,7 +43,7 @@ func TestHandlers_AllItems(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	mockItemService := item.NewMockItemService(controller)
-	mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+	mockApplicationContext := context.MockApplicationContext(nil, mockItemService, nil)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
@@ -113,7 +113,7 @@ func TestHandlers_CreateItem(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockItemService := item.NewMockItemService(controller)
-		mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+		mockApplicationContext := context.MockApplicationContext(nil, mockItemService, nil)
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
 				mockItemService.EXPECT().CreateItem(gomock.Any()).Return(nil, errors.New("error"))
@@ -230,7 +230,7 @@ func TestHandlers_UpdateItem(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockItemService := item.NewMockItemService(controller)
-		mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+		mockApplicationContext := context.MockApplicationContext(nil, mockItemService, nil)
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
 				mockItemService.EXPECT().UpdateItem(gomock.Any()).Return(nil, errors.New("error"))
@@ -299,7 +299,7 @@ func TestHandlers_GetItem(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockItemService := item.NewMockItemService(controller)
-		mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+		mockApplicationContext := context.MockApplicationContext(nil, mockItemService, nil)
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
 				mockItemService.EXPECT().GetItem(expectedUuid).Return(nil, errors.New("error"))
@@ -363,7 +363,7 @@ func TestHandlers_DeleteItem(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockItemService := item.NewMockItemService(controller)
-		mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+		mockApplicationContext := context.MockApplicationContext(nil, mockItemService, nil)
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
 				mockItemService.EXPECT().DeleteItem(expectedUuid).Return(nil, errors.New("error"))

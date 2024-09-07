@@ -13,6 +13,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"inventory-service-go/commons"
 	"inventory-service-go/context"
+	"inventory-service-go/invoice"
 	"inventory-service-go/item"
 	"inventory-service-go/person"
 	"io"
@@ -43,7 +44,7 @@ func TestGetAll(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockPersonService := person.NewMockPersonService(controller)
 	mockItemService := item.NewMockItemService(controller)
-	applicationContext := context.MockApplicationContext(mockPersonService, mockItemService)
+	applicationContext := context.MockApplicationContext(mockPersonService, mockItemService, nil)
 	expectedPersons := []person.Person{personFixture()}
 	tests := []struct {
 		name         string
@@ -113,7 +114,7 @@ func TestGetById(t *testing.T) {
 	for _, tt := range tests {
 		mockPersonService := person.NewMockPersonService(controller)
 		mockItemService := item.NewMockItemService(controller)
-		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService)
+		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService, nil)
 		expectedPerson := personFixture()
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedCode == http.StatusInternalServerError {
@@ -166,7 +167,7 @@ func TestCreate(t *testing.T) {
 	for _, tt := range tests {
 		mockPersonService := person.NewMockPersonService(controller)
 		mockItemService := item.NewMockItemService(controller)
-		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService)
+		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService, nil)
 		expectedPerson := personFixture()
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedCode == http.StatusInternalServerError {
@@ -219,7 +220,7 @@ func TestUpdate(t *testing.T) {
 	for _, tt := range tests {
 		mockPersonService := person.NewMockPersonService(controller)
 		mockItemService := item.NewMockItemService(controller)
-		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService)
+		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService, nil)
 		expectedPerson := personFixture()
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedCode == http.StatusInternalServerError {
@@ -276,7 +277,8 @@ func TestDelete(t *testing.T) {
 	for _, tt := range tests {
 		mockPersonService := person.NewMockPersonService(controller)
 		mockItemService := item.NewMockItemService(controller)
-		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService)
+		mockInvoiceService := invoice.NewMockInvoiceService(controller)
+		applicationContext := context.MockApplicationContext(mockPersonService, mockItemService, mockInvoiceService)
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedCode == http.StatusInternalServerError {
 				mockPersonService.EXPECT().DeleteByUuid(gomock.Any()).Return(nil, errors.New("Internal Error"))
