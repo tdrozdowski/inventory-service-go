@@ -98,3 +98,87 @@ func TestInvoiceService_GetInvoice(t *testing.T) {
 		})
 	}
 }
+
+func TestInvoiceService_GetInvoicesForUser(t *testing.T) {
+	userId := uuid.New()
+	invoiceRowFixture1 := InvoiceRow{
+		Id:            1,
+		AltId:         uuid.New(),
+		UserId:        userId,
+		Total:         10.0,
+		Paid:          false,
+		CreatedBy:     "Unit Test",
+		CreatedAt:     time.Now(),
+		LastChangedBy: "Unit Test",
+		LastUpdate:    time.Now(),
+	}
+	invoiceRowFixture2 := InvoiceRow{
+		Id:            2,
+		AltId:         uuid.New(),
+		UserId:        userId,
+		Total:         15.0,
+		Paid:          false,
+		CreatedBy:     "Unit Test",
+		CreatedAt:     time.Now(),
+		LastChangedBy: "Unit Test",
+		LastUpdate:    time.Now(),
+	}
+	emptyUuid := uuid.UUID{}
+	emptyInvoiceRowFixture := []InvoiceRow{}
+	invoicesFixture := []Invoice{fromRow(invoiceRowFixture1), fromRow(invoiceRowFixture2)}
+	emptyInvoicesFixture := []Invoice{}
+	testCases := []struct {
+		name     string
+		userId   uuid.UUID
+		mockFunc func(mockRepo *MockInvoiceRepository, userId uuid.UUID)
+		want     []Invoice
+		wantErr  bool
+	}{
+		{
+			name:   "Get All Invoices For User",
+			userId: userId,
+			mockFunc: func(mockRepo *MockInvoiceRepository, userId uuid.UUID) {
+				mockRepo.EXPECT().GetAllForUser(userId).Return([]InvoiceRow{invoiceRowFixture1, invoiceRowFixture2}, nil)
+			},
+			want:    invoicesFixture,
+			wantErr: false,
+		},
+		{
+			name:   "Get All Invoices For User - Error",
+			userId: userId,
+			mockFunc: func(mockRepo *MockInvoiceRepository, userId uuid.UUID) {
+				mockRepo.EXPECT().GetAllForUser(userId).Return(nil, errors.New("Boom"))
+			},
+			want:    emptyInvoicesFixture,
+			wantErr: true,
+		},
+		{
+			name:   "Get All Invoices For User No Invoices",
+			userId: emptyUuid,
+			mockFunc: func(mockRepo *MockInvoiceRepository, userId uuid.UUID) {
+				mockRepo.EXPECT().GetAllForUser(userId).Return(emptyInvoiceRowFixture, nil)
+			},
+			want:    emptyInvoicesFixture,
+			wantErr: false,
+		},
+	}
+	controller := gomock.NewController(t)
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := NewMockInvoiceRepository(controller)
+			tt.mockFunc(mockRepo, tt.userId)
+			service := NewInvoiceService(mockRepo)
+			results, err := service.GetInvoicesForUser(tt.userId)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("InvoiceService.GetInvoice() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NotNil(t, results)
+				assert.Equal(t, tt.want, results)
+			}
+		})
+	}
+}

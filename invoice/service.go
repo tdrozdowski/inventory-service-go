@@ -93,3 +93,15 @@ func (s *InvoiceServiceImpl) GetInvoice(id uuid.UUID, withItems bool) (Invoice, 
 		return invoice, err
 	}
 }
+
+func (s *InvoiceServiceImpl) GetInvoicesForUser(userId uuid.UUID) ([]Invoice, error) {
+	invoices, err := s.repo.GetAllForUser(userId)
+	if err != nil {
+		return nil, err
+	}
+	result := []Invoice{}
+	for _, row := range invoices {
+		result = append(result, fromRow(row))
+	}
+	return result, nil
+}
