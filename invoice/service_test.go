@@ -182,3 +182,72 @@ func TestInvoiceService_GetInvoicesForUser(t *testing.T) {
 		})
 	}
 }
+
+func TestInvoiceService_CreateInvoice(t *testing.T) {
+	userId := uuid.New()
+	createdBy := "Unit Test"
+	createInvoiceRequest := CreateInvoiceRequest{
+		UserId:    userId,
+		Paid:      false,
+		Total:     0.0,
+		CreatedBy: createdBy,
+	}
+
+	invoiceRow := InvoiceRow{
+		Id:            1,
+		AltId:         uuid.New(),
+		UserId:        userId,
+		Total:         0.0,
+		Paid:          false,
+		CreatedBy:     createdBy,
+		CreatedAt:     time.Now(),
+		LastChangedBy: createdBy,
+		LastUpdate:    time.Now(),
+	}
+	invoice := fromRow(invoiceRow)
+
+	testCases := []struct {
+		name     string
+		request  CreateInvoiceRequest
+		want     Invoice
+		wantErr  bool
+		mockFunc func(mockRepo *MockInvoiceRepository, request CreateInvoiceRequest)
+	}{
+		{
+			name:    "Create Invoice Successfully",
+			request: createInvoiceRequest,
+			want:    invoice,
+			wantErr: false,
+			mockFunc: func(mockRepo *MockInvoiceRepository, request CreateInvoiceRequest) {
+				mockRepo.EXPECT().CreateInvoice(request).Return(invoiceRow, nil)
+			},
+		},
+		{
+			name:    "Create Invoice - Repo Error",
+			request: createInvoiceRequest,
+			want:    Invoice{},
+			wantErr: true,
+			mockFunc: func(mockRepo *MockInvoiceRepository, request CreateInvoiceRequest) {
+				mockRepo.EXPECT().CreateInvoice(request).Return(InvoiceRow{}, errors.New("Repo Error"))
+			},
+		},
+	}
+	controller := gomock.NewController(t)
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := NewMockInvoiceRepository(controller)
+			tt.mockFunc(mockRepo, tt.request)
+			service := NewInvoiceService(mockRepo)
+			result, err := service.CreateInvoice(tt.request)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("InvoiceService.CreateInvoice() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.Equal(t, tt.want, result)
+			}
+		})
+	}
+}

@@ -105,3 +105,11 @@ func (s *InvoiceServiceImpl) GetInvoicesForUser(userId uuid.UUID) ([]Invoice, er
 	}
 	return result, nil
 }
+
+func (s *InvoiceServiceImpl) CreateInvoice(invoice CreateInvoiceRequest) (Invoice, error) {
+	invoiceRow, err := s.repo.CreateInvoice(invoice)
+	if err != nil {
+		return Invoice{}, err
+	}
+	return fromRow(invoiceRow), nil
+}
