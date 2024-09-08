@@ -46,7 +46,30 @@ func TestInvoiceService_GetInvoice(t *testing.T) {
 		ItemLastChangedBy: sql.NullString{String: "Unit Test", Valid: true},
 		ItemLastUpdate:    sql.NullTime{Time: now, Valid: true},
 	}}
+	invoiceItemRowWithNoItemsFixture := []InvoiceItemRow{
+		{
+			Id:                1,
+			AltId:             invoiceUuid,
+			UserId:            uuid.New(),
+			Total:             10.0,
+			Paid:              false,
+			CreatedBy:         "Unit Test",
+			CreatedAt:         now,
+			LastChangedBy:     "Unit Test",
+			LastUpdate:        now,
+			ItemSeqId:         sql.NullInt64{Valid: false},
+			ItemAltId:         uuid.Nil,
+			ItemName:          sql.NullString{Valid: false},
+			ItemDescription:   sql.NullString{Valid: false},
+			ItemUnitPrice:     sql.NullFloat64{Float64: 10.0, Valid: false},
+			ItemCreatedBy:     sql.NullString{Valid: false},
+			ItemCreatedAt:     sql.NullTime{Valid: false},
+			ItemLastChangedBy: sql.NullString{Valid: false},
+			ItemLastUpdate:    sql.NullTime{Valid: false},
+		},
+	}
 	invoiceFixtureWithItems := fromRowWithItems(invoiceItemRowFixture)
+	invoiceFixtureWithNoItems := fromRowWithItems(invoiceItemRowWithNoItemsFixture)
 	emptyInvoiceRowFixture := InvoiceRow{}
 	emptyInvoiceFixture := Invoice{}
 	testCases := []struct {
@@ -54,24 +77,35 @@ func TestInvoiceService_GetInvoice(t *testing.T) {
 		want      Invoice
 		wantErr   bool
 		withItems bool
+		noItems   bool
 	}{
 		{
 			name:      "Get Invoice No Items",
 			want:      invoiceFixture,
 			wantErr:   false,
 			withItems: false,
+			noItems:   false,
 		},
 		{
 			name:      "Get Invoice With Items",
 			want:      invoiceFixtureWithItems,
 			wantErr:   false,
 			withItems: true,
+			noItems:   false,
+		},
+		{
+			name:      "Get Invoice With Items - No Items",
+			want:      invoiceFixtureWithNoItems,
+			wantErr:   false,
+			withItems: true,
+			noItems:   true,
 		},
 		{
 			name:      "Get Invoice Error",
 			want:      emptyInvoiceFixture,
 			wantErr:   true,
 			withItems: false,
+			noItems:   false,
 		},
 	}
 	controller := gomock.NewController(t)
@@ -80,8 +114,10 @@ func TestInvoiceService_GetInvoice(t *testing.T) {
 			mockRepo := NewMockInvoiceRepository(controller)
 			if tt.wantErr {
 				mockRepo.EXPECT().GetInvoice(invoiceUuid).Return(emptyInvoiceRowFixture, errors.New("Boom"))
-			} else if tt.withItems {
+			} else if tt.withItems && !tt.noItems {
 				mockRepo.EXPECT().GetInvoiceWithItems(invoiceUuid).Return(invoiceItemRowFixture, nil)
+			} else if tt.withItems && tt.noItems {
+				mockRepo.EXPECT().GetInvoiceWithItems(invoiceUuid).Return(invoiceItemRowWithNoItemsFixture, nil)
 			} else {
 				mockRepo.EXPECT().GetInvoice(invoiceUuid).Return(invoiceRowFixture, nil)
 			}
