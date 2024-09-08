@@ -29,7 +29,7 @@ func TestInvoiceRoutes(t *testing.T) {
 		sort.SliceStable(routes, func(i, j int) bool {
 			return routes[i].Name < routes[j].Name
 		})
-		assert.Equal(t, 7, len(routes))
+		assert.Equal(t, 8, len(routes))
 		//assert.Equal(t, "/test/invoices", routes[0].Path)
 		//assert.Equal(t, http.MethodPost, routes[0].Method)
 		//assert.Equal(t, "/test/invoices", routes[1].Path)
@@ -567,6 +567,85 @@ func TestAddItemsToInvoice(t *testing.T) {
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 			if assert.NoError(t, AddItemsToInvoice(mockApp)(c)) {
+				assert.Equal(t, tt.expectErrCode, rec.Code)
+				if tt.expectErrCode == http.StatusOK {
+					var body invoice.ItemsToInvoiceResponse
+					err := json.NewDecoder(rec.Body).Decode(&body)
+					assert.NoError(t, err)
+					assert.Equal(t, tt.expectBody, body)
+				}
+			}
+		})
+	}
+}
+
+func TestRemoveItemFromInvoice(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockInvoiceService := invoice.NewMockInvoiceService(controller)
+	invoiceId := uuid.New()
+	itemId := uuid.New()
+	expectedResult := invoice.ItemsToInvoiceResponse{
+		InvoiceId: invoiceId,
+		Success:   true,
+	}
+	tests := []struct {
+		name           string
+		mockFunc       func(mockService *invoice.MockInvoiceService)
+		paramInvoiceId string
+		paramItemId    string
+		expectBody     invoice.ItemsToInvoiceResponse
+		expectErrCode  int
+	}{
+		{
+			name: "successful removal",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().RemoveItemFromInvoice(invoice.SimpleInvoiceItem{invoiceId, itemId}).Return(expectedResult, nil)
+			},
+			paramInvoiceId: invoiceId.String(),
+			paramItemId:    itemId.String(),
+			expectBody:     expectedResult,
+			expectErrCode:  http.StatusOK,
+		},
+		{
+			name: "internal server error",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().RemoveItemFromInvoice(invoice.SimpleInvoiceItem{invoiceId, itemId}).Return(invoice.ItemsToInvoiceResponse{}, errors.New("BOOM"))
+			},
+			paramInvoiceId: invoiceId.String(),
+			paramItemId:    itemId.String(),
+			expectErrCode:  http.StatusInternalServerError,
+		},
+		{
+			name: "bad request: invoiceId",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().RemoveItemFromInvoice(invoice.SimpleInvoiceItem{invoiceId, itemId}).Times(0)
+			},
+			paramInvoiceId: "bad-id",
+			paramItemId:    itemId.String(),
+			expectErrCode:  http.StatusBadRequest,
+		},
+		{
+			name: "bad request: itemId",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().RemoveItemFromInvoice(invoice.SimpleInvoiceItem{invoiceId, itemId}).Times(0)
+			},
+			paramInvoiceId: invoiceId.String(),
+			paramItemId:    "bad-id",
+			expectErrCode:  http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockApp := context.MockApplicationContext(nil, nil, mockInvoiceService)
+			tt.mockFunc(mockInvoiceService)
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodPost, "/"+tt.paramInvoiceId+"/"+tt.paramItemId, nil)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetParamNames("id", "itemId")
+			c.SetParamValues(tt.paramInvoiceId, tt.paramItemId)
+			if assert.NoError(t, RemoveItemFromInvoice(mockApp)(c)) {
 				assert.Equal(t, tt.expectErrCode, rec.Code)
 				if tt.expectErrCode == http.StatusOK {
 					var body invoice.ItemsToInvoiceResponse

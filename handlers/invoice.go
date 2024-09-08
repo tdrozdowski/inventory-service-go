@@ -9,12 +9,13 @@ import (
 )
 
 func InvoiceRoutes(g *echo.Group, a context.ApplicationContext) {
-	g.POST("/invoices/items", AddItemsToInvoice(a))
+	g.POST("/invoices/:id/items", AddItemsToInvoice(a))
 	g.POST("/invoices", CreateInvoice(a))
 	g.DELETE("/invoices/:id", DeleteInvoice(a))
 	g.GET("/invoices", GetAllInvoices(a))
 	g.GET("/invoices/:id", GetInvoice(a))
 	g.GET("/invoices/user/:userId", GetAllInvoicesForUser(a))
+	g.DELETE("/invoices/:id/items/:itemId", RemoveItemFromInvoice(a))
 	g.PUT("/invoices/:id", UpdateInvoice(a))
 }
 
@@ -125,5 +126,25 @@ func AddItemsToInvoice(a context.ApplicationContext) func(c echo.Context) error 
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 		return c.JSON(http.StatusOK, response)
+	}
+}
+
+func RemoveItemFromInvoice(a context.ApplicationContext) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		idParam := c.Param("id")
+		itemIdParam := c.Param("itemId")
+		invoiceId, err := uuid.Parse(idParam)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		itemId, err := uuid.Parse(itemIdParam)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		results, err := a.InvoiceService().RemoveItemFromInvoice(invoice.SimpleInvoiceItem{invoiceId, itemId})
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusOK, results)
 	}
 }
