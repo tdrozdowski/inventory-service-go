@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"inventory-service-go/context"
 	"inventory-service-go/invoice"
@@ -10,6 +11,7 @@ import (
 func InvoiceRoutes(g *echo.Group, a context.ApplicationContext) {
 	g.POST("/invoices", CreateInvoice(a))
 	g.GET("/invoices", GetAllInvoices(a))
+	g.PUT("/invoices/:id", UpdateInvoice(a))
 }
 
 func GetAllInvoices(a context.ApplicationContext) func(c echo.Context) error {
@@ -31,6 +33,29 @@ func CreateInvoice(a context.ApplicationContext) func(c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, err)
 		}
 		result, err := a.InvoiceService().CreateInvoice(request)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusOK, result)
+	}
+}
+
+func UpdateInvoice(a context.ApplicationContext) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		var request invoice.UpdateInvoiceRequest
+		err := c.Bind(&request)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		idParam := c.Param("id")
+		id, err := uuid.Parse(idParam)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		if id != request.Id {
+			return c.JSON(http.StatusBadRequest, "id in path does not match id in body")
+		}
+		result, err := a.InvoiceService().UpdateInvoice(request)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
