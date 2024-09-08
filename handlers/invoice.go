@@ -11,6 +11,7 @@ import (
 func InvoiceRoutes(g *echo.Group, a context.ApplicationContext) {
 	g.POST("/invoices", CreateInvoice(a))
 	g.GET("/invoices", GetAllInvoices(a))
+	g.GET("/invoices/:id", GetInvoice(a))
 	g.PUT("/invoices/:id", UpdateInvoice(a))
 }
 
@@ -56,6 +57,22 @@ func UpdateInvoice(a context.ApplicationContext) func(c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, "id in path does not match id in body")
 		}
 		result, err := a.InvoiceService().UpdateInvoice(request)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusOK, result)
+	}
+}
+
+func GetInvoice(a context.ApplicationContext) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		idParam := c.Param("id")
+		withItems := c.QueryParam("withItems") == "true"
+		id, err := uuid.Parse(idParam)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		result, err := a.InvoiceService().GetInvoice(id, withItems)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
