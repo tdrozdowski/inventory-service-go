@@ -17,6 +17,26 @@ import (
 	"testing"
 )
 
+func TestInvoiceRoutes(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockInvoiceService := invoice.NewMockInvoiceService(controller)
+	mockApp := context.MockApplicationContext(nil, nil, mockInvoiceService)
+	e := echo.New()
+
+	t.Run("successful route registration", func(t *testing.T) {
+		InvoiceRoutes(e.Group("/test"), mockApp)
+		routes := e.Routes()
+		sort.SliceStable(routes, func(i, j int) bool {
+			return routes[i].Name < routes[j].Name
+		})
+		assert.Equal(t, 6, len(routes))
+		//assert.Equal(t, "/test/invoices", routes[0].Path)
+		//assert.Equal(t, http.MethodPost, routes[0].Method)
+		//assert.Equal(t, "/test/invoices", routes[1].Path)
+		//assert.Equal(t, http.MethodGet, routes[1].Method)
+	})
+}
+
 func TestGetAllInvoices(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockInvoiceService := invoice.NewMockInvoiceService(controller)
@@ -90,25 +110,6 @@ func TestGetAllInvoices(t *testing.T) {
 	}
 }
 
-func TestInvoiceRoutes(t *testing.T) {
-	controller := gomock.NewController(t)
-	mockInvoiceService := invoice.NewMockInvoiceService(controller)
-	mockApp := context.MockApplicationContext(nil, nil, mockInvoiceService)
-	e := echo.New()
-
-	t.Run("successful route registration", func(t *testing.T) {
-		InvoiceRoutes(e.Group("/test"), mockApp)
-		routes := e.Routes()
-		sort.SliceStable(routes, func(i, j int) bool {
-			return routes[i].Name < routes[j].Name
-		})
-		assert.Equal(t, 5, len(routes))
-		//assert.Equal(t, "/test/invoices", routes[0].Path)
-		//assert.Equal(t, http.MethodPost, routes[0].Method)
-		//assert.Equal(t, "/test/invoices", routes[1].Path)
-		//assert.Equal(t, http.MethodGet, routes[1].Method)
-	})
-}
 func TestCreateInvoice(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockInvoiceService := invoice.NewMockInvoiceService(controller)
@@ -421,4 +422,84 @@ func TestDeleteInvoice(t *testing.T) {
 		})
 	}
 	gomockController.Finish()
+}
+
+func TestGetAllInvoicesForUser(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockInvoiceService := invoice.NewMockInvoiceService(controller)
+	userId := uuid.New()
+	expectedInvoices := []invoice.Invoice{
+		invoice.Invoice{
+			Seq:       1,
+			Id:        uuid.UUID{},
+			UserId:    userId,
+			Total:     0,
+			Paid:      false,
+			Items:     nil,
+			AuditInfo: commons.AuditInfo{},
+		},
+		invoice.Invoice{
+			Seq:       2,
+			Id:        uuid.UUID{},
+			UserId:    userId,
+			Total:     0,
+			Paid:      false,
+			Items:     nil,
+			AuditInfo: commons.AuditInfo{},
+		},
+	}
+	tests := []struct {
+		name          string
+		mockFunc      func(mockService *invoice.MockInvoiceService)
+		paramUserId   string
+		expectBody    []invoice.Invoice
+		expectErrCode int
+	}{
+		{
+			name: "successful retrieval",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().GetInvoicesForUser(userId).Return(expectedInvoices, nil)
+			},
+			paramUserId:   userId.String(),
+			expectBody:    expectedInvoices,
+			expectErrCode: http.StatusOK,
+		},
+		{
+			name: "service error",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().GetInvoicesForUser(userId).Return([]invoice.Invoice{}, errors.New("BOOM"))
+			},
+			paramUserId:   userId.String(),
+			expectErrCode: http.StatusInternalServerError,
+		},
+		{
+			name: "bad request: userId",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().GetInvoicesForUser(userId).Times(0)
+			},
+			paramUserId:   "bad-id",
+			expectErrCode: http.StatusBadRequest,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockApp := context.MockApplicationContext(nil, nil, mockInvoiceService)
+			tt.mockFunc(mockInvoiceService)
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodGet, "/"+tt.paramUserId, nil)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetParamNames("userId")
+			c.SetParamValues(tt.paramUserId)
+			if assert.NoError(t, GetAllInvoicesForUser(mockApp)(c)) {
+				assert.Equal(t, tt.expectErrCode, rec.Code)
+				if tt.expectErrCode == http.StatusOK {
+					var body []invoice.Invoice
+					err := json.NewDecoder(rec.Body).Decode(&body)
+					assert.NoError(t, err)
+					assert.Equal(t, tt.expectBody, body)
+				}
+			}
+		})
+	}
 }

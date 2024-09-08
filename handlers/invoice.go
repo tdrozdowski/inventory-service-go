@@ -13,6 +13,7 @@ func InvoiceRoutes(g *echo.Group, a context.ApplicationContext) {
 	g.DELETE("/invoices/:id", DeleteInvoice(a))
 	g.GET("/invoices", GetAllInvoices(a))
 	g.GET("/invoices/:id", GetInvoice(a))
+	g.GET("/invoices/user/:userId", GetAllInvoicesForUser(a))
 	g.PUT("/invoices/:id", UpdateInvoice(a))
 }
 
@@ -89,6 +90,21 @@ func DeleteInvoice(a context.ApplicationContext) func(c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, err)
 		}
 		results, err := a.InvoiceService().DeleteInvoice(id)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusOK, results)
+	}
+}
+
+func GetAllInvoicesForUser(a context.ApplicationContext) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		userIdParam := c.Param("userId")
+		userId, err := uuid.Parse(userIdParam)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		results, err := a.InvoiceService().GetInvoicesForUser(userId)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
