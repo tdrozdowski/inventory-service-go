@@ -1,0 +1,386 @@
+basePath: /api/v1
+definitions:
+  auth.Credentials:
+    properties:
+      client_id:
+        type: string
+      client_secret:
+        type: string
+    type: object
+  commons.AuditInfo:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      last_change_by:
+        type: string
+      last_update:
+        type: string
+    type: object
+  commons.DeleteResult:
+    properties:
+      deleted:
+        type: boolean
+      id:
+        type: string
+    type: object
+  handlers.TokenCredentials:
+    properties:
+      createdAt:
+        type: integer
+      token:
+        type: string
+    type: object
+  invoice.CreateInvoiceRequest:
+    properties:
+      created_by:
+        type: string
+      paid:
+        type: boolean
+      total:
+        type: number
+      user_id:
+        type: string
+    type: object
+  invoice.Invoice:
+    properties:
+      audit_info:
+        $ref: '#/definitions/commons.AuditInfo'
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/item.Item'
+        type: array
+      paid:
+        type: boolean
+      seq:
+        type: integer
+      total:
+        type: number
+      user_id:
+        type: string
+    type: object
+  invoice.ItemsToInvoiceRequest:
+    properties:
+      invoice_id:
+        type: string
+      items:
+        items:
+          type: string
+        type: array
+    type: object
+  invoice.ItemsToInvoiceResponse:
+    properties:
+      invoice_id:
+        type: string
+      items:
+        items:
+          type: string
+        type: array
+      success:
+        type: boolean
+    type: object
+  invoice.UpdateInvoiceRequest:
+    properties:
+      id:
+        type: string
+      last_changed_by:
+        type: string
+      paid:
+        type: boolean
+      total:
+        type: number
+    type: object
+  item.Item:
+    properties:
+      audit_info:
+        $ref: '#/definitions/commons.AuditInfo'
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      seq:
+        type: integer
+      unit_price:
+        type: number
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: API Support
+    url: http://localhost/support
+  description: This is an implementation of the imventory-service in Go.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Inventory Service API
+  version: "1.0"
+paths:
+  /authorize:
+    post:
+      consumes:
+      - application/json
+      description: Retrieve an JWT access token for supplied credentials
+      operationId: authorize
+      parameters:
+      - description: Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.Credentials'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TokenCredentials'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized (invalid credentials)
+          schema:
+            type: string
+      summary: Authorize
+      tags:
+      - auth
+  /invoices:
+    get:
+      description: List all Invoices
+      operationId: all_invoices
+      parameters:
+      - description: last seq id
+        in: query
+        name: last_id
+        type: integer
+      - description: number of invoices per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/invoice.Invoice'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List Invoices
+      tags:
+      - invoice
+    post:
+      consumes:
+      - application/json
+      description: Create an Invoice
+      operationId: create_invoice
+      parameters:
+      - description: Create Invoice Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/invoice.CreateInvoiceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/invoice.Invoice'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized (invalid credentials)
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Create Invoice
+      tags:
+      - invoice
+  /invoices/{id}:
+    delete:
+      description: Remove a specific Invoice
+      operationId: delete_invoice
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/commons.DeleteResult'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete Invoice
+      tags:
+      - invoice
+    get:
+      description: Get a specific Invoice
+      operationId: get_invoice
+      parameters:
+      - description: return with Items (if there are any attached to the invoice)
+        in: query
+        name: withItems
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/invoice.Invoice'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get Invoice
+      tags:
+      - invoice
+    put:
+      consumes:
+      - application/json
+      description: Update an Invoice
+      operationId: update_invoice
+      parameters:
+      - description: Update Invoice Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/invoice.UpdateInvoiceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/invoice.Invoice'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized (invalid credentials)
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Update Invoice
+      tags:
+      - invoice
+  /invoices/{id}/items:
+    post:
+      consumes:
+      - application/json
+      description: Add Items to an Invoice
+      operationId: add_items_to_invoice
+      parameters:
+      - description: Add Items to Invoice Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/invoice.ItemsToInvoiceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/invoice.ItemsToInvoiceResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add Items to Invoice
+      tags:
+      - invoice
+  /invoices/{id}/items/{itemId}:
+    delete:
+      description: Remove a specific Item from a specific Invoice
+      operationId: remove_item_from_invoice
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/commons.DeleteResult'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Remove Item From Invoice
+      tags:
+      - invoice
+  /invoices/user/{id}:
+    get:
+      description: Get all Invoices for a specific User
+      operationId: get_all_for_user_invoice
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/invoice.Invoice'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get Invoices For User
+      tags:
+      - invoice
+swagger: "2.0"

@@ -13,6 +13,19 @@ type TokenCredentials struct {
 	CreatedAt int64  `json:"createdAt"`
 }
 
+// Authorize
+//
+//		@Summary		Authorize
+//		@Description	Retrieve an JWT access token for supplied credentials
+//		@ID				authorize
+//		@Tags			auth
+//		@Accept			json
+//		@Produce		json
+//	    @Param 			request body 		auth.Credentials	true 	"Credentials"
+//		@Success		200		{object}	handlers.TokenCredentials	"OK"
+//		@Failure		400		{string}	string					"Bad Request"
+//		@Failure		401		{string}	string					"Unauthorized (invalid credentials)"
+//		@Router			/authorize [post]
 func Authorize(appContext context.ApplicationContext) func(context2 echo.Context) error {
 	return func(c echo.Context) error {
 		// read the auth.Credentials from the request body
