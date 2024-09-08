@@ -29,7 +29,7 @@ func TestInvoiceRoutes(t *testing.T) {
 		sort.SliceStable(routes, func(i, j int) bool {
 			return routes[i].Name < routes[j].Name
 		})
-		assert.Equal(t, 6, len(routes))
+		assert.Equal(t, 7, len(routes))
 		//assert.Equal(t, "/test/invoices", routes[0].Path)
 		//assert.Equal(t, http.MethodPost, routes[0].Method)
 		//assert.Equal(t, "/test/invoices", routes[1].Path)
@@ -495,6 +495,81 @@ func TestGetAllInvoicesForUser(t *testing.T) {
 				assert.Equal(t, tt.expectErrCode, rec.Code)
 				if tt.expectErrCode == http.StatusOK {
 					var body []invoice.Invoice
+					err := json.NewDecoder(rec.Body).Decode(&body)
+					assert.NoError(t, err)
+					assert.Equal(t, tt.expectBody, body)
+				}
+			}
+		})
+	}
+}
+
+func TestAddItemsToInvoice(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockInvoiceService := invoice.NewMockInvoiceService(controller)
+	invoiceId := uuid.New()
+	items := []uuid.UUID{uuid.New(), uuid.New()}
+	addItemsRequest := invoice.ItemsToInvoiceRequest{
+		InvoiceId: invoiceId,
+		Items:     items,
+	}
+	expectedResult := invoice.ItemsToInvoiceResponse{
+		InvoiceId: invoiceId,
+		Items:     items,
+		Success:   true,
+	}
+	tests := []struct {
+		name          string
+		mockFunc      func(mockService *invoice.MockInvoiceService)
+		inputBody     invoice.ItemsToInvoiceRequest
+		expectBody    invoice.ItemsToInvoiceResponse
+		expectErrCode int
+	}{
+		{
+			name: "successful addition",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().AddItemsToInvoice(addItemsRequest).Return(expectedResult, nil)
+			},
+			inputBody:     addItemsRequest,
+			expectBody:    expectedResult,
+			expectErrCode: http.StatusOK,
+		},
+		{
+			name: "internal server error",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().AddItemsToInvoice(addItemsRequest).Return(invoice.ItemsToInvoiceResponse{}, errors.New("BOOM"))
+			},
+			inputBody:     addItemsRequest,
+			expectErrCode: http.StatusInternalServerError,
+		},
+		{
+			name: "bad request: body missing",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().AddItemsToInvoice(addItemsRequest).Times(0)
+			},
+			inputBody:     invoice.ItemsToInvoiceRequest{},
+			expectErrCode: http.StatusBadRequest,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockApp := context.MockApplicationContext(nil, nil, mockInvoiceService)
+			tt.mockFunc(mockInvoiceService)
+			e := echo.New()
+			var body []byte
+			if tt.expectErrCode == http.StatusBadRequest {
+				body = []byte("not json")
+			} else {
+				body, _ = json.Marshal(tt.inputBody)
+			}
+			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			if assert.NoError(t, AddItemsToInvoice(mockApp)(c)) {
+				assert.Equal(t, tt.expectErrCode, rec.Code)
+				if tt.expectErrCode == http.StatusOK {
+					var body invoice.ItemsToInvoiceResponse
 					err := json.NewDecoder(rec.Body).Decode(&body)
 					assert.NoError(t, err)
 					assert.Equal(t, tt.expectBody, body)
