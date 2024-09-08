@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"inventory-service-go/commons"
 	"inventory-service-go/context"
@@ -18,6 +19,16 @@ import (
 	"testing"
 	"time"
 )
+
+func TestItemRoutes(t *testing.T) {
+	mockApp := context.MockApplicationContext(nil, nil, nil)
+	e := echo.New()
+	t.Run("successful route registration", func(t *testing.T) {
+		ItemRoutes(e.Group("/test"), mockApp)
+		routes := e.Routes()
+		assert.Equal(t, 5, len(routes))
+	})
+}
 
 func TestHandlers_AllItems(t *testing.T) {
 	tests := []struct {
@@ -43,7 +54,7 @@ func TestHandlers_AllItems(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	mockItemService := item.NewMockItemService(controller)
-	mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+	mockApplicationContext := context.MockApplicationContext(nil, mockItemService, nil)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
@@ -113,7 +124,7 @@ func TestHandlers_CreateItem(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockItemService := item.NewMockItemService(controller)
-		mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+		mockApplicationContext := context.MockApplicationContext(nil, mockItemService, nil)
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
 				mockItemService.EXPECT().CreateItem(gomock.Any()).Return(nil, errors.New("error"))
@@ -230,7 +241,7 @@ func TestHandlers_UpdateItem(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockItemService := item.NewMockItemService(controller)
-		mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+		mockApplicationContext := context.MockApplicationContext(nil, mockItemService, nil)
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
 				mockItemService.EXPECT().UpdateItem(gomock.Any()).Return(nil, errors.New("error"))
@@ -299,7 +310,7 @@ func TestHandlers_GetItem(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockItemService := item.NewMockItemService(controller)
-		mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+		mockApplicationContext := context.MockApplicationContext(nil, mockItemService, nil)
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
 				mockItemService.EXPECT().GetItem(expectedUuid).Return(nil, errors.New("error"))
@@ -363,7 +374,7 @@ func TestHandlers_DeleteItem(t *testing.T) {
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
 		mockItemService := item.NewMockItemService(controller)
-		mockApplicationContext := context.MockApplicationContext(nil, mockItemService)
+		mockApplicationContext := context.MockApplicationContext(nil, mockItemService, nil)
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
 				mockItemService.EXPECT().DeleteItem(expectedUuid).Return(nil, errors.New("error"))

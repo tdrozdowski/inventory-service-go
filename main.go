@@ -22,6 +22,7 @@ func main() {
 	apiV1.POST("/authorize", handlers.Authorize(appContext))
 	handlers.PersonRoutes(apiV1, appContext)
 	handlers.ItemRoutes(apiV1, appContext)
+	handlers.InvoiceRoutes(apiV1, appContext)
 
 	//middlewares
 	e.Use(middleware.CORS())
