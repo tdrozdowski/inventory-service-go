@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
@@ -12,6 +13,7 @@ import (
 	"inventory-service-go/invoice"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"testing"
 )
 
@@ -97,8 +99,97 @@ func TestInvoiceRoutes(t *testing.T) {
 	t.Run("successful route registration", func(t *testing.T) {
 		InvoiceRoutes(e.Group("/test"), mockApp)
 		routes := e.Routes()
-		assert.Equal(t, 1, len(routes))
+		sort.SliceStable(routes, func(i, j int) bool {
+			return routes[i].Name < routes[j].Name
+		})
+		assert.Equal(t, 2, len(routes))
+		assert.Equal(t, "/test/invoices", routes[1].Path)
+		assert.Equal(t, http.MethodGet, routes[1].Method)
 		assert.Equal(t, "/test/invoices", routes[0].Path)
-		assert.Equal(t, http.MethodGet, routes[0].Method)
+		assert.Equal(t, http.MethodPost, routes[0].Method)
 	})
+}
+func TestCreateInvoice(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockInvoiceService := invoice.NewMockInvoiceService(controller)
+	userId := uuid.New()
+	createInvoiceRequest := invoice.CreateInvoiceRequest{
+		UserId:    userId,
+		Paid:      false,
+		Total:     10.0,
+		CreatedBy: "unit test",
+	}
+	expectedInvoice := invoice.Invoice{
+		Seq:       1,
+		Id:        uuid.UUID{},
+		UserId:    userId,
+		Total:     10.0,
+		Paid:      false,
+		Items:     nil,
+		AuditInfo: commons.AuditInfo{},
+	}
+	tests := []struct {
+		name          string
+		mockFunc      func(mockService *invoice.MockInvoiceService)
+		inputBody     invoice.CreateInvoiceRequest
+		expectBody    invoice.Invoice
+		expectErrCode int
+	}{
+
+		{
+			name: "successful creation",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().CreateInvoice(createInvoiceRequest).Return(expectedInvoice, nil)
+			},
+			inputBody:     createInvoiceRequest,
+			expectBody:    expectedInvoice,
+			expectErrCode: http.StatusOK,
+		},
+		{
+			name: "internal server error",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().CreateInvoice(createInvoiceRequest).Return(invoice.Invoice{}, errors.New("BOOM"))
+			},
+			inputBody:     createInvoiceRequest,
+			expectBody:    invoice.Invoice{},
+			expectErrCode: http.StatusInternalServerError,
+		},
+		{
+			name: "bad request",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().CreateInvoice(createInvoiceRequest).Times(0)
+			},
+			inputBody:     invoice.CreateInvoiceRequest{},
+			expectBody:    invoice.Invoice{},
+			expectErrCode: http.StatusBadRequest,
+		},
+	}
+	{
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				mockApp := context.MockApplicationContext(nil, nil, mockInvoiceService)
+				tt.mockFunc(mockInvoiceService)
+				e := echo.New()
+				var jsonBody []byte
+				if tt.expectErrCode == http.StatusBadRequest {
+					jsonBody = []byte("bad request")
+				} else {
+					jsonBody, _ = json.Marshal(tt.inputBody)
+				}
+				req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(jsonBody))
+				req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+				rec := httptest.NewRecorder()
+				c := e.NewContext(req, rec)
+				if assert.NoError(t, CreateInvoice(mockApp)(c)) {
+					assert.Equal(t, tt.expectErrCode, rec.Code)
+					if tt.expectErrCode == http.StatusOK {
+						var body invoice.Invoice
+						err := json.NewDecoder(rec.Body).Decode(&body)
+						assert.NoError(t, err)
+						assert.Equal(t, tt.expectBody, body)
+					}
+				}
+			})
+		}
+	}
 }
