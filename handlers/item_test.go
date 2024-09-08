@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"inventory-service-go/commons"
 	"inventory-service-go/context"
@@ -18,6 +19,16 @@ import (
 	"testing"
 	"time"
 )
+
+func TestItemRoutes(t *testing.T) {
+	mockApp := context.MockApplicationContext(nil, nil, nil)
+	e := echo.New()
+	t.Run("successful route registration", func(t *testing.T) {
+		ItemRoutes(e.Group("/test"), mockApp)
+		routes := e.Routes()
+		assert.Equal(t, 5, len(routes))
+	})
+}
 
 func TestHandlers_AllItems(t *testing.T) {
 	tests := []struct {

@@ -13,27 +13,16 @@ import (
 	"inventory-service-go/invoice"
 	"net/http"
 	"net/http/httptest"
-	"sort"
 	"testing"
 )
 
 func TestInvoiceRoutes(t *testing.T) {
-	controller := gomock.NewController(t)
-	mockInvoiceService := invoice.NewMockInvoiceService(controller)
-	mockApp := context.MockApplicationContext(nil, nil, mockInvoiceService)
+	mockApp := context.MockApplicationContext(nil, nil, nil)
 	e := echo.New()
-
 	t.Run("successful route registration", func(t *testing.T) {
 		InvoiceRoutes(e.Group("/test"), mockApp)
 		routes := e.Routes()
-		sort.SliceStable(routes, func(i, j int) bool {
-			return routes[i].Name < routes[j].Name
-		})
 		assert.Equal(t, 8, len(routes))
-		//assert.Equal(t, "/test/invoices", routes[0].Path)
-		//assert.Equal(t, http.MethodPost, routes[0].Method)
-		//assert.Equal(t, "/test/invoices", routes[1].Path)
-		//assert.Equal(t, http.MethodGet, routes[1].Method)
 	})
 }
 
@@ -45,7 +34,7 @@ func TestGetAllInvoices(t *testing.T) {
 		PageSize: 10,
 	}
 	expectedInvoices := []invoice.Invoice{
-		invoice.Invoice{
+		{
 			Seq:       1,
 			Id:        uuid.UUID{},
 			UserId:    uuid.UUID{},
@@ -54,7 +43,7 @@ func TestGetAllInvoices(t *testing.T) {
 			Items:     nil,
 			AuditInfo: commons.AuditInfo{},
 		},
-		invoice.Invoice{
+		{
 			Seq:       2,
 			Id:        uuid.UUID{},
 			UserId:    uuid.UUID{},
@@ -220,6 +209,7 @@ func TestUpdateInvoice(t *testing.T) {
 		mockFunc      func(mockService *invoice.MockInvoiceService)
 		inputBody     invoice.UpdateInvoiceRequest
 		paramId       string
+		nilBody       bool
 		expectBody    invoice.Invoice
 		expectErrCode int
 	}{
@@ -229,6 +219,7 @@ func TestUpdateInvoice(t *testing.T) {
 			mockFunc: func(mockService *invoice.MockInvoiceService) {
 				mockService.EXPECT().UpdateInvoice(updateInvoiceRequest).Return(expectedInvoice, nil)
 			},
+			nilBody:       false,
 			inputBody:     updateInvoiceRequest,
 			paramId:       id.String(),
 			expectBody:    expectedInvoice,
@@ -239,6 +230,7 @@ func TestUpdateInvoice(t *testing.T) {
 			mockFunc: func(mockService *invoice.MockInvoiceService) {
 				mockService.EXPECT().UpdateInvoice(updateInvoiceRequest).Return(invoice.Invoice{}, errors.New("BOOM"))
 			},
+			nilBody:       false,
 			inputBody:     updateInvoiceRequest,
 			paramId:       id.String(),
 			expectBody:    invoice.Invoice{},
@@ -249,6 +241,7 @@ func TestUpdateInvoice(t *testing.T) {
 			mockFunc: func(mockService *invoice.MockInvoiceService) {
 				mockService.EXPECT().UpdateInvoice(updateInvoiceRequest).Times(0)
 			},
+			nilBody:       true,
 			inputBody:     invoice.UpdateInvoiceRequest{},
 			paramId:       id.String(),
 			expectBody:    invoice.Invoice{},
@@ -259,8 +252,20 @@ func TestUpdateInvoice(t *testing.T) {
 			mockFunc: func(mockService *invoice.MockInvoiceService) {
 				mockService.EXPECT().UpdateInvoice(updateInvoiceRequest).Times(0)
 			},
+			nilBody:       false,
 			inputBody:     updateInvoiceRequest,
 			paramId:       "bad-id",
+			expectBody:    invoice.Invoice{},
+			expectErrCode: http.StatusBadRequest,
+		},
+		{
+			name: "bad request: mismatched ids",
+			mockFunc: func(mockService *invoice.MockInvoiceService) {
+				mockService.EXPECT().UpdateInvoice(updateInvoiceRequest).Times(0)
+			},
+			nilBody:       false,
+			inputBody:     updateInvoiceRequest,
+			paramId:       uuid.New().String(),
 			expectBody:    invoice.Invoice{},
 			expectErrCode: http.StatusBadRequest,
 		},
@@ -271,8 +276,13 @@ func TestUpdateInvoice(t *testing.T) {
 			mockApp := context.MockApplicationContext(nil, nil, mockInvoiceService)
 			tt.mockFunc(mockInvoiceService)
 			e := echo.New()
-			jsonBody, _ := json.Marshal(tt.inputBody)
-			req := httptest.NewRequest(http.MethodPost, "/"+tt.paramId, bytes.NewReader(jsonBody))
+			var body []byte
+			if tt.nilBody {
+				body = []byte("invalid body")
+			} else {
+				body, _ = json.Marshal(tt.inputBody)
+			}
+			req := httptest.NewRequest(http.MethodPost, "/"+tt.paramId, bytes.NewReader(body))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
@@ -429,7 +439,7 @@ func TestGetAllInvoicesForUser(t *testing.T) {
 	mockInvoiceService := invoice.NewMockInvoiceService(controller)
 	userId := uuid.New()
 	expectedInvoices := []invoice.Invoice{
-		invoice.Invoice{
+		{
 			Seq:       1,
 			Id:        uuid.UUID{},
 			UserId:    userId,
@@ -438,7 +448,7 @@ func TestGetAllInvoicesForUser(t *testing.T) {
 			Items:     nil,
 			AuditInfo: commons.AuditInfo{},
 		},
-		invoice.Invoice{
+		{
 			Seq:       2,
 			Id:        uuid.UUID{},
 			UserId:    userId,

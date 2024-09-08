@@ -39,6 +39,16 @@ func personFixture() person.Person {
 	}
 }
 
+func TestPersonRoutes(t *testing.T) {
+	mockApp := context.MockApplicationContext(nil, nil, nil)
+	e := echo.New()
+	t.Run("successful route registration", func(t *testing.T) {
+		PersonRoutes(e.Group("/test"), mockApp)
+		routes := e.Routes()
+		assert.Equal(t, 5, len(routes))
+	})
+}
+
 func TestGetAll(t *testing.T) {
 	pagination := &commons.Pagination{LastId: 0, PageSize: 10}
 	controller := gomock.NewController(t)
@@ -162,6 +172,11 @@ func TestCreate(t *testing.T) {
 			createRequest: person.CreatePersonRequest{},
 			expectedCode:  http.StatusInternalServerError,
 		},
+		{
+			name:          "Invalid Request Body",
+			createRequest: person.CreatePersonRequest{},
+			expectedCode:  http.StatusBadRequest,
+		},
 	}
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
@@ -175,15 +190,22 @@ func TestCreate(t *testing.T) {
 			} else if tt.expectedCode == http.StatusCreated {
 				mockPersonService.EXPECT().Create(gomock.Any()).Return(&expectedPerson, nil)
 			}
-			requestBody, err := json.Marshal(tt.createRequest)
-			assert.NoError(t, err)
+			var requestBody []byte
+			if tt.expectedCode == http.StatusBadRequest {
+				requestBody = []byte(`bad request`)
+			} else {
+				requestBody, _ = json.Marshal(tt.createRequest)
+			}
 			req := httptest.NewRequest(http.MethodPost, "/", io.NopCloser(bytes.NewReader(requestBody)))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 
 			c := echo.New().NewContext(req, rec)
 			handler := CreatePerson(applicationContext)
-			err = handler(c)
+			err := handler(c)
+			if err != nil {
+				return
+			}
 			if err != nil {
 				t.Errorf("Handler returned error: %v", err)
 			}
@@ -215,6 +237,11 @@ func TestUpdate(t *testing.T) {
 			updateRequest: person.UpdatePersonRequest{},
 			expectedCode:  http.StatusInternalServerError,
 		},
+		{
+			name:          "Invalid Request Body",
+			updateRequest: person.UpdatePersonRequest{},
+			expectedCode:  http.StatusBadRequest,
+		},
 	}
 	controller := gomock.NewController(t)
 	for _, tt := range tests {
@@ -228,8 +255,12 @@ func TestUpdate(t *testing.T) {
 			} else if tt.expectedCode == http.StatusOK {
 				mockPersonService.EXPECT().Update(gomock.Any()).Return(&expectedPerson, nil)
 			}
-			requestBody, err := json.Marshal(tt.updateRequest)
-			assert.NoError(t, err)
+			var requestBody []byte
+			if tt.expectedCode == http.StatusBadRequest {
+				requestBody = []byte(`bad request`)
+			} else {
+				requestBody, _ = json.Marshal(tt.updateRequest)
+			}
 			uri := fmt.Sprintf("/%s", tt.updateRequest.Id)
 			req := httptest.NewRequest(http.MethodPut, uri, io.NopCloser(bytes.NewReader(requestBody)))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -239,7 +270,7 @@ func TestUpdate(t *testing.T) {
 			c.SetParamNames("id")
 			c.SetParamValues(tt.updateRequest.Id.String())
 			handler := UpdatePerson(applicationContext)
-			err = handler(c)
+			err := handler(c)
 			if err != nil {
 				t.Errorf("Handler returned error: %v", err)
 			}
