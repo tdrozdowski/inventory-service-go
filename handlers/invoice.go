@@ -10,6 +10,7 @@ import (
 
 func InvoiceRoutes(g *echo.Group, a context.ApplicationContext) {
 	g.POST("/invoices", CreateInvoice(a))
+	g.DELETE("/invoices/:id", DeleteInvoice(a))
 	g.GET("/invoices", GetAllInvoices(a))
 	g.GET("/invoices/:id", GetInvoice(a))
 	g.PUT("/invoices/:id", UpdateInvoice(a))
@@ -77,5 +78,20 @@ func GetInvoice(a context.ApplicationContext) func(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 		return c.JSON(http.StatusOK, result)
+	}
+}
+
+func DeleteInvoice(a context.ApplicationContext) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		idParam := c.Param("id")
+		id, err := uuid.Parse(idParam)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		results, err := a.InvoiceService().DeleteInvoice(id)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusOK, results)
 	}
 }
