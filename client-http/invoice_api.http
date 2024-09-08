@@ -49,7 +49,19 @@ Content-Type: application/json
   "last_changed_by": "http_client"
 }
 ###
+POST http://localhost:8080/api/v1/invoices/{{new_invoice_id}}/items
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "invoice_id": "{{new_invoice_id}}",
+  "items": ["6f4bdd88-d12e-421a-bac7-92ed2d9035aa", "2492b388-e0b9-47ca-97a1-8f5ba75441ea"]
+}
+###
 GET http://localhost:8080/api/v1/invoices/{{new_invoice_id}}?withItems=true
+Authorization: Bearer {{access_token}}
+###
+DELETE http://localhost:8080/api/v1/invoices/{{new_invoice_id}}/items/6f4bdd88-d12e-421a-bac7-92ed2d9035aa
 Authorization: Bearer {{access_token}}
 ###
 DELETE http://localhost:8080/api/v1/invoices/{{new_invoice_id}}
