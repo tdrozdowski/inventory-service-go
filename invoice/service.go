@@ -8,13 +8,13 @@ import (
 )
 
 type Invoice struct {
-	Seq       int
-	Id        uuid.UUID
-	UserId    uuid.UUID
-	Total     float64
-	Paid      bool
-	Items     []item.Item
-	AuditInfo commons.AuditInfo
+	Seq       int               `json:"seq"`
+	Id        uuid.UUID         `json:"id"`
+	UserId    uuid.UUID         `json:"user_id"`
+	Total     float64           `json:"total"`
+	Paid      bool              `json:"paid"`
+	Items     []item.Item       `json:"items"`
+	AuditInfo commons.AuditInfo `json:"audit_info"`
 }
 
 func fromRow(row InvoiceRow) Invoice {
@@ -45,17 +45,20 @@ func fromRows(results []InvoiceRow) []Invoice {
 func fromRowWithItems(row []InvoiceItemRow) Invoice {
 	var items []item.Item
 	for _, row := range row {
+		if row.ItemSeqId.Valid == false {
+			continue
+		}
 		items = append(items, item.Item{
-			Seq:         int(row.ItemSeqId),
+			Seq:         int(row.ItemSeqId.Int64),
 			Id:          row.ItemAltId,
-			Name:        row.ItemName,
-			Description: row.ItemDescription,
-			UnitPrice:   row.ItemUnitPrice,
+			Name:        row.ItemName.String,
+			Description: row.ItemDescription.String,
+			UnitPrice:   row.ItemUnitPrice.Float64,
 			AuditInfo: commons.AuditInfo{
-				CreatedBy:     row.CreatedBy,
-				CreatedAt:     row.CreatedAt.Format(time.RFC3339),
-				LastChangedBy: row.LastChangedBy,
-				LastUpdate:    row.LastUpdate.Format(time.RFC3339),
+				CreatedBy:     row.ItemCreatedBy.String,
+				CreatedAt:     row.ItemCreatedAt.Time.Format(time.RFC3339),
+				LastUpdate:    row.ItemLastUpdate.Time.Format(time.RFC3339),
+				LastChangedBy: row.ItemLastChangedBy.String,
 			},
 		})
 	}
@@ -66,6 +69,12 @@ func fromRowWithItems(row []InvoiceItemRow) Invoice {
 		Total:  row[0].Total,
 		Paid:   row[0].Paid,
 		Items:  items,
+		AuditInfo: commons.AuditInfo{
+			CreatedBy:     row[0].CreatedBy,
+			CreatedAt:     row[0].CreatedAt.Format(time.RFC3339),
+			LastChangedBy: row[0].LastChangedBy,
+			LastUpdate:    row[0].LastUpdate.Format(time.RFC3339),
+		},
 	}
 }
 

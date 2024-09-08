@@ -18,3 +18,40 @@ OPTIONS http://localhost:8080/api/v1/invoices?page_size=100
 GET http://localhost:8080/api/v1/invoices?last_id=24&page_size=1
 Authorization: Bearer {{access_token}}
 ###
+
+POST http://localhost:8080/api/v1/invoices
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "user_id": "2b1b425e-dee2-4227-8d94-f470a0ce0cd0",
+  "paid": false,
+  "total": 125.0,
+  "created_by": "http_client"
+}
+
+> {%
+ client.global.set("new_invoice_id", response.body.id)
+ %}
+
+###
+GET http://localhost:8080/api/v1/invoices/{{new_invoice_id}}
+Authorization: Bearer {{access_token}}
+###
+PUT http://localhost:8080/api/v1/invoices/{{new_invoice_id}}
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "id": "{{new_invoice_id}}",
+  "paid": true,
+  "total": 130.5,
+  "last_changed_by": "http_client"
+}
+###
+GET http://localhost:8080/api/v1/invoices/{{new_invoice_id}}?withItems=true
+Authorization: Bearer {{access_token}}
+###
+DELETE http://localhost:8080/api/v1/invoices/{{new_invoice_id}}
+Authorization: Bearer {{access_token}}
+###

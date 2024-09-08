@@ -1,6 +1,7 @@
 package invoice
 
 import (
+	"database/sql"
 	"errors"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -35,15 +36,15 @@ func TestInvoiceService_GetInvoice(t *testing.T) {
 		CreatedAt:         now,
 		LastChangedBy:     "Unit Test",
 		LastUpdate:        now,
-		ItemSeqId:         1,
+		ItemSeqId:         sql.NullInt64{Int64: 1, Valid: true},
 		ItemAltId:         uuid.New(),
-		ItemName:          "Item 1",
-		ItemDescription:   "Item 1 Description",
-		ItemUnitPrice:     10.0,
-		ItemCreatedBy:     "Unit Test",
-		ItemCreatedAt:     now,
-		ItemLastChangedBy: "Unit Test",
-		ItemLastUpdate:    now,
+		ItemName:          sql.NullString{String: "Item 1", Valid: true},
+		ItemDescription:   sql.NullString{String: "Item 1 Description", Valid: true},
+		ItemUnitPrice:     sql.NullFloat64{Float64: 10.0, Valid: true},
+		ItemCreatedBy:     sql.NullString{String: "Unit Test", Valid: true},
+		ItemCreatedAt:     sql.NullTime{Time: now, Valid: true},
+		ItemLastChangedBy: sql.NullString{String: "Unit Test", Valid: true},
+		ItemLastUpdate:    sql.NullTime{Time: now, Valid: true},
 	}}
 	invoiceFixtureWithItems := fromRowWithItems(invoiceItemRowFixture)
 	emptyInvoiceRowFixture := InvoiceRow{}

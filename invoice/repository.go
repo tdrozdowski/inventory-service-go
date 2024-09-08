@@ -1,6 +1,7 @@
 package invoice
 
 import (
+	"database/sql"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"inventory-service-go/commons"
@@ -20,24 +21,24 @@ type InvoiceRow struct {
 }
 
 type InvoiceItemRow struct {
-	Id                int64     `db:"id"`
-	AltId             uuid.UUID `db:"alt_id"`
-	UserId            uuid.UUID `db:"user_id"`
-	Total             float64   `db:"total"`
-	Paid              bool      `db:"paid"`
-	CreatedBy         string    `db:"created_by"`
-	CreatedAt         time.Time `db:"created_at"`
-	LastChangedBy     string    `db:"last_changed_by"`
-	LastUpdate        time.Time `db:"last_update"`
-	ItemSeqId         int64     `db:"item_id"`
-	ItemAltId         uuid.UUID `db:"item_alt_id"`
-	ItemName          string    `db:"item_name"`
-	ItemDescription   string    `db:"item_description"`
-	ItemUnitPrice     float64   `db:"item_unit_price"`
-	ItemCreatedBy     string    `db:"item_created_by"`
-	ItemCreatedAt     time.Time `db:"item_created_at"`
-	ItemLastChangedBy string    `db:"item_last_changed_by"`
-	ItemLastUpdate    time.Time `db:"item_last_update"`
+	Id                int64           `db:"id"`
+	AltId             uuid.UUID       `db:"alt_id"`
+	UserId            uuid.UUID       `db:"user_id"`
+	Total             float64         `db:"total"`
+	Paid              bool            `db:"paid"`
+	CreatedBy         string          `db:"created_by"`
+	CreatedAt         time.Time       `db:"created_at"`
+	LastChangedBy     string          `db:"last_changed_by"`
+	LastUpdate        time.Time       `db:"last_update"`
+	ItemSeqId         sql.NullInt64   `db:"item_seq"`
+	ItemAltId         uuid.UUID       `db:"item_alt_id"`
+	ItemName          sql.NullString  `db:"item_name"`
+	ItemDescription   sql.NullString  `db:"item_description"`
+	ItemUnitPrice     sql.NullFloat64 `db:"item_unit_price"`
+	ItemCreatedBy     sql.NullString  `db:"item_created_by"`
+	ItemCreatedAt     sql.NullTime    `db:"item_created_at"`
+	ItemLastChangedBy sql.NullString  `db:"item_last_changed_by"`
+	ItemLastUpdate    sql.NullTime    `db:"item_last_update"`
 }
 
 type CreateInvoiceRequest struct {
@@ -108,7 +109,7 @@ const (
 	AddItemsToInvoiceQuery     = `INSERT INTO invoices_items (invoice_id, item_id) VALUES (:invoice_id, :item_id)`
 	RemoveItemFromInvoiceQuery = `DELETE FROM invoices_items WHERE invoice_id = $1 AND item_id = $2`
 	GetInvoiceQuery            = `SELECT * FROM invoices WHERE alt_id = $1`
-	GetInvoiceWithItemsQuery   = `SELECT i.*, i2.id as item_seq, i2.alt_id as item_alt_id, i2.name as item_name, description as item_description, i2.unit_price as item_unit_price, i2.created_by as item_created_by, i2.created_at as item_created_at, i2.last_changed_by as item_last_changed_by, i2.last_update as item_last_update  FROM invoices i INNER JOIN invoices_items ii ON i.id = ii.invoice_id INNER JOIN public.items i2 on i2.alt_id = ii.item_id WHERE i.alt_id = $1`
+	GetInvoiceWithItemsQuery   = `SELECT i.*, i2.id as item_seq, i2.alt_id as item_alt_id, i2.name as item_name, description as item_description, i2.unit_price as item_unit_price, i2.created_by as item_created_by, i2.created_at as item_created_at, i2.last_changed_by as item_last_changed_by, i2.last_update as item_last_update  FROM invoices i FULL OUTER JOIN invoices_items ii ON i.alt_id = ii.invoice_id FULL OUTER JOIN public.items i2 on i2.alt_id = ii.item_id WHERE i.alt_id = $1`
 	GetAllQuery                = `SELECT * FROM invoices`
 	GetAllWithPaginationQuery  = `SELECT * FROM invoices WHERE id > $1 LIMIT $2`
 	GetAllForUserQuery         = `SELECT * FROM invoices WHERE user_id = $1`
@@ -116,7 +117,7 @@ const (
 
 func (r *InvoiceRepositoryImpl) CreateInvoice(request CreateInvoiceRequest) (InvoiceRow, error) {
 	var results = InvoiceRow{}
-	err := r.db.Get(&results, CreateQuery, request.UserId, request.Paid, request.Total, request.CreatedBy)
+	err := r.db.Get(&results, CreateQuery, request.UserId, request.Total, request.Paid, request.CreatedBy)
 	return results, err
 }
 
