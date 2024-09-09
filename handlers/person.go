@@ -86,8 +86,9 @@ func GetPersonById(appContext context.ApplicationContext) func(c echo.Context) e
 		}
 		personService := appContext.PersonService()
 		p, err := personService.GetById(uuid)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, err)
+		err2 := commons.HandleServiceError(c, err)
+		if err2 != nil {
+			return err2
 		}
 		return c.JSON(http.StatusOK, p)
 	}
@@ -174,8 +175,9 @@ func DeletePerson(appContext context.ApplicationContext) func(c echo.Context) er
 		}
 		personService := appContext.PersonService()
 		results, err := personService.DeleteByUuid(uuid)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, err)
+		err2 := commons.HandleServiceError(c, err)
+		if err2 != nil {
+			return err2
 		}
 		return c.JSON(http.StatusOK, results)
 	}
