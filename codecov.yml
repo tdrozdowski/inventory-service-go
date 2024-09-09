@@ -2,4 +2,5 @@ ignore:
   - "main.go"
   - "**/mock_*"
   - "**/wire.go"
-  - "**/wire-gen.go"# glob accepted
+  - "**/wire-gen.go"
+  - "./docs/docs.go"
