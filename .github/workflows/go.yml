@@ -28,10 +28,19 @@ jobs:
       run: go build -v ./...
 
     - name: Test
-      run: go test -v ./...
-
+      run: | 
+        mkdir ./coverage
+        go install github.com/jstemmer/go-junit-report/v2@latest
+        go test -coverprofile=./coverage/coverage.out -cover -json -v ./... 2>&1 | go-junit-report -set-exit-code > tests.xml
     - name: Codecov
       run: go test -v -coverprofile=coverage.txt ./...
+
+    - name: Upload test results to Codecov
+      if: ${{ !cancelled() }}
+      uses: codecov/test-results-action@v1
+      with:
+        files: tests.xml
+        token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4.5.0
