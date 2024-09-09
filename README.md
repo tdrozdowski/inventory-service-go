@@ -2,10 +2,27 @@
 ![Current Build](https://github.com/tdrozdowski/inventory-service-go/actions/workflows/go.yml/badge.svg)
 [![codecov](https://codecov.io/gh/tdrozdowski/inventory-service-go/graph/badge.svg?token=JNAPPBO1OV)](https://codecov.io/gh/tdrozdowski/inventory-service-go)
 
-Example of inventory service in Go, using SQLx and Echo v5.
+Example of inventory service in Go, using SQLx and Echo.
 
 NOTE - this does assume you ran the migrations or have a db from the companion Rust project.  See [here](https://github.com/tdrozdowski/inventory-service-rs?tab=readme-ov-file#getting-started) for more details.
 The supporting docker-compose file is included with this project to run the database.
+
+## Getting Started
+This project builds using standard Go tookit tools - nothing extra is needed.
+
+On MacOS - use Homebrew:
+```bash
+brew install go
+```
+
+To start up the server just do:
+```bash
+go build
+```
+
+And then you can use the http client scripts in the `client-http` folder or use Postman.
+
+To access the OpenAPI docs go here: http://localhost:8080/docs
 
 ## Development
 If you care to extend/modify this code, you will need to install a couple tools.
