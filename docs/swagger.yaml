@@ -93,6 +93,17 @@ definitions:
       total:
         type: number
     type: object
+  item.CreateItemRequest:
+    properties:
+      created_by:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      unit_price:
+        type: number
+    type: object
   item.Item:
     properties:
       audit_info:
@@ -107,6 +118,52 @@ definitions:
         type: integer
       unit_price:
         type: number
+    type: object
+  item.UpdateItemRequest:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      last_changed_by:
+        type: string
+      name:
+        type: string
+      unit_price:
+        type: number
+    type: object
+  person.CreatePersonRequest:
+    properties:
+      created_by:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  person.Person:
+    properties:
+      audit_info:
+        $ref: '#/definitions/commons.AuditInfo'
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      seq:
+        type: integer
+    type: object
+  person.UpdatePersonRequest:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      last_changed_by:
+        type: string
+      name:
+        type: string
     type: object
 host: localhost:8080
 info:
@@ -383,4 +440,312 @@ paths:
       summary: Get Invoices For User
       tags:
       - invoice
+  /items:
+    get:
+      description: List all Items
+      operationId: all_items
+      parameters:
+      - description: last seq id
+        in: query
+        name: last_id
+        type: integer
+      - description: number of items per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/item.Item'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List Items
+      tags:
+      - item
+    post:
+      consumes:
+      - application/json
+      description: Create an Item
+      operationId: create_item
+      parameters:
+      - description: Create Item Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/item.CreateItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/item.Item'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized (invalid credentials)
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Create Item
+      tags:
+      - item
+  /items/{id}:
+    delete:
+      description: Remove a specific Item
+      operationId: delete_item
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/commons.DeleteResult'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete Item
+      tags:
+      - item
+    get:
+      description: Get a specific Item
+      operationId: get_item
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/item.Item'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get Item
+      tags:
+      - item
+    put:
+      consumes:
+      - application/json
+      description: Update an Item
+      operationId: update_item
+      parameters:
+      - description: Update Item Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/item.UpdateItemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/item.Item'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized (invalid credentials)
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Update Item
+      tags:
+      - item
+  /persons:
+    get:
+      description: List all Persons
+      operationId: all_persons
+      parameters:
+      - description: last seq id
+        in: query
+        name: last_id
+        type: integer
+      - description: number of persons per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/person.Person'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List Persons
+      tags:
+      - person
+    post:
+      consumes:
+      - application/json
+      description: Create an Person
+      operationId: create_person
+      parameters:
+      - description: Create Person Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/person.CreatePersonRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/person.Person'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized (invalid credentials)
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Create Person
+      tags:
+      - person
+  /persons/{id}:
+    delete:
+      description: Remove a specific Person
+      operationId: delete_person
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/commons.DeleteResult'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete Person
+      tags:
+      - person
+    get:
+      description: Get a specific Person
+      operationId: get_person
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/person.Person'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get Person
+      tags:
+      - person
+    put:
+      consumes:
+      - application/json
+      description: Update an Person
+      operationId: update_person
+      parameters:
+      - description: Update Person Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/person.UpdatePersonRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/person.Person'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized (invalid credentials)
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Update Person
+      tags:
+      - person
 swagger: "2.0"

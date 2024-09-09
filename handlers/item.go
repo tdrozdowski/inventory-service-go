@@ -18,6 +18,19 @@ func ItemRoutes(p *echo.Group, appContext context.ApplicationContext) {
 	p.DELETE("/items/:id", DeleteItem(appContext))
 }
 
+// AllItems
+//
+//		@Summary		List Items
+//		@Description	List all Items
+//		@Id				all_items
+//		@Tags			item
+//		@Produce		json
+//		@Param			last_id		query		int	false	"last seq id"
+//	 	@Param			page_size 	query		int false 	"number of items per page"
+//		@Success		200	{array}		item.Item			"OK"
+//		@Failure		400	{string}	string 				"Bad Request"
+//		@Failure		500	{string}	string 				"Internal Server Error"
+//		@Router			/items [get]
 func AllItems(appContext context.ApplicationContext) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		pagination := paginationFromRequest(c)
@@ -30,6 +43,20 @@ func AllItems(appContext context.ApplicationContext) func(c echo.Context) error 
 	}
 }
 
+// CreateItem
+//
+//		@Summary		Create Item
+//		@Description	Create an Item
+//		@ID				create_item
+//		@Tags			item
+//		@Accept			json
+//		@Produce		json
+//	    @Param 			request body 		item.CreateItemRequest	true 	"Create Item Request"
+//		@Success		201		{object}	item.Item						"Created"
+//		@Failure		400		{string}	string					"Bad Request"
+//		@Failure		401		{string}	string					"Unauthorized (invalid credentials)"
+//		@Failure		500		{object}	error					"Internal Server Error"
+//		@Router			/items [post]
 func CreateItem(appContext context.ApplicationContext) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		var createItemRequest item.CreateItemRequest
@@ -42,10 +69,25 @@ func CreateItem(appContext context.ApplicationContext) func(c echo.Context) erro
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
-		return c.JSON(http.StatusOK, results)
+		return c.JSON(http.StatusCreated, results)
 	}
 }
 
+// UpdateItem
+//
+//		@Summary		Update Item
+//		@Description	Update an Item
+//		@ID				update_item
+//		@Tags			item
+//		@Accept			json
+//		@Produce		json
+//	    @Param 			request body 		item.UpdateItemRequest		true 	"Update Item Request"
+//		@Param			id	path			uuid.Uuid					true	"Invoice Id"
+//		@Success		200		{object}	item.Item				"OK"
+//		@Failure		400		{string}	string					"Bad Request"
+//		@Failure		401		{string}	string					"Unauthorized (invalid credentials)"
+//		@Failure		500		{object}	error					"Internal Server Error"
+//		@Router			/items/{id} [put]
 func UpdateItem(appContext context.ApplicationContext) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		var updateItemRequest item.UpdateItemRequest
@@ -70,6 +112,19 @@ func UpdateItem(appContext context.ApplicationContext) func(c echo.Context) erro
 	}
 }
 
+// DeleteItem
+//
+//		@Summary		Delete Item
+//		@Description	Remove a specific Item
+//		@Id				delete_item
+//		@Tags			item
+//		@Produce		json
+//	 	@Param			id				query		uuid.Uuid 	true 	"id of the item to be deleted"
+//		@Success		200	{array}		commons.DeleteResult	"OK"
+//		@Failure		400	{string}	string 					"Bad Request"
+//		@Failure		404 {string} 	string					"Not Found"
+//		@Failure		500	{string}	string 					"Internal Server Error"
+//		@Router			/items/{id} [delete]
 func DeleteItem(appContext context.ApplicationContext) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		idParam := c.Param("id")
@@ -90,6 +145,19 @@ func DeleteItem(appContext context.ApplicationContext) func(c echo.Context) erro
 	}
 }
 
+// GetItem
+//
+//		@Summary		Get Item
+//		@Description	Get a specific Item
+//		@Id				get_item
+//		@Tags			item
+//		@Produce		json
+//	 	@Param			id				query		uuid.Uuid 	true 	"id of the item requested"
+//		@Success		200	{array}		item.Item		 	"OK"
+//		@Failure		400	{string}	string 				"Bad Request"
+//		@Failure		404 {string} 	string				"Not Found"
+//		@Failure		500	{string}	string 				"Internal Server Error"
+//		@Router			/items/{id} [get]
 func GetItem(appContext context.ApplicationContext) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		idParam := c.Param("id")
