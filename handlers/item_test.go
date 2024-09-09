@@ -106,7 +106,7 @@ func TestHandlers_CreateItem(t *testing.T) {
 				LastUpdate:    "Unit Test",
 				LastChangedBy: now,
 			}},
-			expectedStatusCode: http.StatusOK,
+			expectedStatusCode: http.StatusCreated,
 		},
 		{
 			name:               "Fail with an invalid request",
@@ -128,7 +128,7 @@ func TestHandlers_CreateItem(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectedStatusCode == http.StatusInternalServerError {
 				mockItemService.EXPECT().CreateItem(gomock.Any()).Return(nil, errors.New("error"))
-			} else if tt.expectedStatusCode == http.StatusOK {
+			} else if tt.expectedStatusCode == http.StatusCreated {
 				mockItemService.EXPECT().CreateItem(tt.createItemRequest).Return(&tt.expectedResults, nil)
 			}
 			e := echo.New()
