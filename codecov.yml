@@ -4,3 +4,6 @@ ignore:
   - "**/wire.go"
   - "**/wire-gen.go"
   - "./docs/docs.go"
+coverage:
+  status:
+    project: true
