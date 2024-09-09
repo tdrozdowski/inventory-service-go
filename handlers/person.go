@@ -32,14 +32,14 @@ func paginationFromRequest(c echo.Context) *commons.Pagination {
 }
 
 func PersonRoutes(p *echo.Group, appContext context.ApplicationContext) {
-	p.GET("/persons", GetAll(appContext))
-	p.GET("/persons/:id", GetById(appContext))
+	p.GET("/persons", GetAllPersons(appContext))
+	p.GET("/persons/:id", GetPersonById(appContext))
 	p.POST("/persons", CreatePerson(appContext))
 	p.PUT("/persons/:id", UpdatePerson(appContext))
 	p.DELETE("/persons/:id", DeletePerson(appContext))
 }
 
-// GetAll
+// GetAllPersons
 //
 //		@Summary		List Persons
 //		@Description	List all Persons
@@ -52,7 +52,7 @@ func PersonRoutes(p *echo.Group, appContext context.ApplicationContext) {
 //		@Failure		400	{string}	string 				"Bad Request"
 //		@Failure		500	{string}	string 				"Internal Server Error"
 //		@Router			/persons [get]
-func GetAll(appContext context.ApplicationContext) func(c echo.Context) error {
+func GetAllPersons(appContext context.ApplicationContext) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		pagination := paginationFromRequest(c)
 		personService := appContext.PersonService()
@@ -64,7 +64,7 @@ func GetAll(appContext context.ApplicationContext) func(c echo.Context) error {
 	}
 }
 
-// GetById
+// GetPersonById
 //
 //		@Summary		Get Person
 //		@Description	Get a specific Person
@@ -77,7 +77,7 @@ func GetAll(appContext context.ApplicationContext) func(c echo.Context) error {
 //		@Failure		404 {string} 	string				"Not Found"
 //		@Failure		500	{string}	string 				"Internal Server Error"
 //		@Router			/persons/{id} [get]
-func GetById(appContext context.ApplicationContext) func(c echo.Context) error {
+func GetPersonById(appContext context.ApplicationContext) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		id := c.Param("id")
 		uuid, err := uuid2.Parse(id)

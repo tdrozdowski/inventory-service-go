@@ -1,10 +1,9 @@
 package handlers
 
 import (
-	"database/sql"
-	"errors"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"inventory-service-go/commons"
 	"inventory-service-go/context"
 	"inventory-service-go/item"
 	"net/http"
@@ -134,12 +133,9 @@ func DeleteItem(appContext context.ApplicationContext) func(c echo.Context) erro
 		}
 		itemService := appContext.ItemService()
 		results, err := itemService.DeleteItem(id)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return c.JSON(http.StatusNotFound, err)
-			} else {
-				return c.JSON(http.StatusInternalServerError, err)
-			}
+		err2 := commons.HandleServiceError(c, err)
+		if err2 != nil {
+			return err2
 		}
 		return c.JSON(http.StatusOK, results)
 	}
@@ -167,12 +163,9 @@ func GetItem(appContext context.ApplicationContext) func(c echo.Context) error {
 		}
 		itemService := appContext.ItemService()
 		results, err := itemService.GetItem(id)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return c.JSON(http.StatusNotFound, err)
-			} else {
-				return c.JSON(http.StatusInternalServerError, err)
-			}
+		err2 := commons.HandleServiceError(c, err)
+		if err2 != nil {
+			return err2
 		}
 		return c.JSON(http.StatusOK, results)
 	}
