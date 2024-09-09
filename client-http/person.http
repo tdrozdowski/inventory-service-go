@@ -10,6 +10,7 @@ Content-Type: application/json
     client.global.set("access_token", response.body.token);
  %}
 
+
 ###
 
 GET http://localhost:8080/api/v1/persons?last_id=1&page_size=1

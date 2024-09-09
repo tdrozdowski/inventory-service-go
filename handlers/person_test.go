@@ -85,7 +85,7 @@ func TestGetAll(t *testing.T) {
 			rec := httptest.NewRecorder()
 
 			c := echo.New().NewContext(req, rec)
-			handler := GetAll(tt.appContext)
+			handler := GetAllPersons(tt.appContext)
 
 			err := handler(c)
 			if err != nil {
@@ -140,7 +140,7 @@ func TestGetById(t *testing.T) {
 			c.SetPath("/:id")
 			c.SetParamNames("id")
 			c.SetParamValues(tt.uuid)
-			handler := GetById(applicationContext)
+			handler := GetPersonById(applicationContext)
 			err := handler(c)
 			if err != nil {
 				t.Errorf("Handler returned error: %v", err)
